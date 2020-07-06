@@ -1,0 +1,245 @@
+
+.winprompt_block {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 242px;
+    box-sizing: border-box;
+    padding: 19px 30px;
+    background-color: rgba(58, 58, 60, 0.8);
+    color: #fff;
+    z-index: 4000;
+    text-align: center;
+}
+
+.pagenation[data-v-20bcfbb8]{
+    position: absolute;
+    right:65px;
+    top:42px;
+}
+.pagenation .pre[data-v-20bcfbb8],.pagenation .next[data-v-20bcfbb8] {
+    display: inline-block;
+    cursor: pointer;
+    border: 1px solid #E5E5E4;
+     padding-top: 2px;
+    padding-right:4px;
+    padding-left:4px;
+    height:26px;
+    color: #3065C5;
+    margin-right: 6px;
+    font-size:14px;
+}
+.pagenation .pre.gray[data-v-20bcfbb8],.pagenation .next.gray[data-v-20bcfbb8]{
+    color:#A8B0BF;
+}
+.pagenation .page[data-v-20bcfbb8] {
+     display: inline-block;
+     box-sizing: border-box;
+     padding-top: 2px;
+    cursor: pointer;
+    border: 1px solid #E5E5E4;
+    width:26px;
+    height:26px;
+    color: #3065C5;
+    margin-right: 6px;
+    font-size:14px;
+    text-align: center;
+}
+.pagenation .selected[data-v-20bcfbb8] {
+    background-color: #E6EFFF;
+     border: 1px solid #F0F5FF;
+}
+* {
+    padding: 0;
+    margin: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    scroll-behavior: smooth;
+    font-family: "PingFang SC", "Microsoft YaHei", "arial", "sans-serif", "SimHei";
+    background-color: #F5F6FA;
+}
+
+
+li {
+    list-style-type: none;
+}
+
+a,a:hover,a:active {
+    text-decoration: none;
+}
+
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+    color: #AEAEAE;
+    font-family: "PingFang SC", "Microsoft YaHei", "arial", "sans-serif", "SimHei";
+}
+
+input:-moz-placeholder,
+textarea:-moz-placeholder {
+    color: #AEAEAE;
+    font-family: "PingFang SC", "Microsoft YaHei", "arial", "sans-serif", "SimHei";
+}
+
+input::-moz-placeholder,
+textarea::-moz-placeholder {
+    color: #AEAEAE;
+    font-family: "PingFang SC", "Microsoft YaHei", "arial", "sans-serif", "SimHei";
+}
+
+input:-ms-input-placeholder,
+textarea:-ms-input-placeholder {
+    color: #AEAEAE;
+    font-family: "PingFang SC", "Microsoft YaHei", "arial", "sans-serif", "SimHei";
+}
+
+.left {
+    float: left;
+}
+
+.right {
+    float: right;
+}
+
+
+
+.gray {
+    -webkit-filter: grayscale(100%);
+    -moz-filter: grayscale(100%);
+    -ms-filter: grayscale(100%);
+    -o-filter: grayscale(100%);
+    filter: grayscale(100%);
+    filter: gray;
+}
+
+div {
+    box-sizing: border-box;
+}
+
+
+
+.text-right{
+    text-align: right;
+}
+
+.text-center{
+    text-align: center;
+}
+
+
+
+/*
+ * 清除浮动
+ */
+
+.clearfix:after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+
+/*
+ *字体大小
+ */
+
+.bold {
+    font-weight: bold;
+}
+
+
+
+/*
+ * 字体颜色
+ */
+
+.colorfff {
+    color: #fff;
+}
+
+.color2{
+    color:#222;
+}
+
+.color9{
+    color:#999;
+}
+
+.color3{
+    color:#333;
+}
+
+.colorA8B{
+    color:#A8B0BF;
+}
+.color306{
+    color:#3065C5;
+}
+
+
+
+/*  
+过渡效果
+*/
+
+.tranColor {
+    transition: color 0.2s;
+    -moz-transition: color 0.2s;
+    -webkit-transition: color 0.2s;
+    -o-transition: color 0.2s;
+}
+
+.tranShadow{
+    transition: box-shadow 0.2s;
+    -moz-transition: box-shadow 0.2s;
+    -webkit-transition: box-shadow 0.2s;
+    -o-transition: box-shadow 0.2s;
+}
+
+.tranOpacity{
+    transition: opacity  0.2s;
+    -moz-transition: opacity  0.2s;
+    -webkit-transition: opacity  0.2s;
+    -o-transition: opacity  0.2s;
+}
+
+.tranBack{
+    transition: background-color  0.2s;
+    -moz-transition: background-color  0.2s;
+    -webkit-transition: background-color  0.2s;
+    -o-transition: background-color  0.2s;
+}
+
+
+.tranAll {
+    transition: all 0.2s;
+    -moz-transition: all 0.2s;
+    -webkit-transition: all 0.2s;
+    -o-transition: all 0.2s;
+}
+
+/*
+vue的动画效果
+ */
+
+.show-enter-active,
+.show-leave-active {
+    transition: opacity .2s;
+}
+
+.show-enter,
+.show-leave-to {
+    opacity: 0;
+}
+
+/*
+公共样式
+ */
+.index{
+    padding-top:72px;
+}
