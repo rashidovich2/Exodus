@@ -27,8 +27,7 @@ from tests.wallet_tools import WalletTool
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestMempool:
@@ -723,12 +722,10 @@ class TestMempool:
         async for outbound in full_node_1.respond_transaction(tx1):
             outbound_messages.append(outbound)
 
-        new_transaction = False
-        for msg in outbound_messages:
-            if msg.message.function == "new_transaction":
-                new_transaction = True
-
-        assert new_transaction == True
+        new_transaction = any(
+            msg.message.function == "new_transaction" for msg in outbound_messages
+        )
+        assert new_transaction
 
         mempool_bundle = full_node_1.mempool_manager.get_spendbundle(
             spend_bundle1.name()
@@ -774,12 +771,10 @@ class TestMempool:
         async for outbound in full_node_1.respond_transaction(tx1):
             outbound_messages.append(outbound)
 
-        new_transaction = False
-        for msg in outbound_messages:
-            if msg.message.function == "new_transaction":
-                new_transaction = True
-
-        assert new_transaction == False
+        new_transaction = any(
+            msg.message.function == "new_transaction" for msg in outbound_messages
+        )
+        assert not new_transaction
 
         mempool_bundle = full_node_1.mempool_manager.get_spendbundle(
             spend_bundle1.name()
@@ -842,12 +837,10 @@ class TestMempool:
         async for outbound in full_node_1.respond_transaction(tx1):
             outbound_messages.append(outbound)
 
-        new_transaction = False
-        for msg in outbound_messages:
-            if msg.message.function == "new_transaction":
-                new_transaction = True
-
-        assert new_transaction == False
+        new_transaction = any(
+            msg.message.function == "new_transaction" for msg in outbound_messages
+        )
+        assert not new_transaction
 
         mempool_bundle = full_node_1.mempool_manager.get_spendbundle(
             spend_bundle1.name()

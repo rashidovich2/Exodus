@@ -14,17 +14,15 @@ from src.consensus.constants import constants as consensus_constants
 bt = BlockTools()
 
 test_constants: Dict[str, Any] = consensus_constants.copy()
-test_constants.update(
-    {
-        "DIFFICULTY_STARTING": 5,
-        "DISCRIMINANT_SIZE_BITS": 16,
-        "BLOCK_TIME_TARGET": 10,
-        "MIN_BLOCK_TIME": 2,
-        "DIFFICULTY_EPOCH": 12,  # The number of blocks per epoch
-        "DIFFICULTY_DELAY": 3,  # EPOCH / WARP_FACTOR
-        "MIN_ITERS_STARTING": 50 * 2,
-    }
-)
+test_constants |= {
+    "DIFFICULTY_STARTING": 5,
+    "DISCRIMINANT_SIZE_BITS": 16,
+    "BLOCK_TIME_TARGET": 10,
+    "MIN_BLOCK_TIME": 2,
+    "DIFFICULTY_EPOCH": 12,  # The number of blocks per epoch
+    "DIFFICULTY_DELAY": 3,  # EPOCH / WARP_FACTOR
+    "MIN_ITERS_STARTING": 50 * 2,
+}
 test_constants["GENESIS_BLOCK"] = bytes(
     bt.create_genesis_block(test_constants, bytes([0] * 32), b"0")
 )
@@ -32,8 +30,7 @@ test_constants["GENESIS_BLOCK"] = bytes(
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestCoinStore:
@@ -143,7 +140,7 @@ class TestCoinStore:
                 await b.receive_block(blocks[i])
             assert b.get_current_tips()[0].height == 100
 
-            for c, block in enumerate(blocks):
+            for block in blocks:
                 unspent = await coin_store.get_coin_record(
                     block.header.data.coinbase.name(), block.header
                 )

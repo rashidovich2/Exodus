@@ -67,8 +67,7 @@ async def start_harvester_rpc_server(
         "/delete_plot": handler.delete_plot,
         "/add_plot": handler.add_plot,
     }
-    cleanup = await start_rpc_server(handler, rpc_port, routes)
-    return cleanup
+    return await start_rpc_server(handler, rpc_port, routes)
 
 
 AbstractRpcApiHandler.register(HarvesterRpcApiHandler)

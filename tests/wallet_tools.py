@@ -95,8 +95,7 @@ class WalletTool:
 
     def get_new_puzzlehash(self):
         puzzle = self.get_new_puzzle()
-        puzzlehash = puzzle.get_tree_hash()
-        return puzzlehash
+        return puzzle.get_tree_hash()
 
     def sign(self, value, pubkey):
         privatekey = self.extended_secret_key.private_child(
@@ -140,7 +139,6 @@ class WalletTool:
         fee: int = 0,
         secretkey=None,
     ):
-        spends = []
         spend_value = coin.amount
         puzzle_hash = coin.puzzle_hash
         if secretkey is None:
@@ -166,12 +164,8 @@ class WalletTool:
                 ConditionOpcode.CREATE_COIN, changepuzzlehash, int_to_bytes(change)
             )
             condition_dic[output.opcode].append(change_output)
-            solution = self.make_solution(condition_dic)
-        else:
-            solution = self.make_solution(condition_dic)
-
-        spends.append((puzzle, CoinSolution(coin, solution)))
-        return spends
+        solution = self.make_solution(condition_dic)
+        return [(puzzle, CoinSolution(coin, solution))]
 
     def sign_transaction(self, spends: List[Tuple[Program, CoinSolution]]):
         sigs = []
@@ -199,8 +193,7 @@ class WalletTool:
             )
             for (puzzle, coin_solution) in spends
         ]
-        spend_bundle = SpendBundle(solution_list, aggsig)
-        return spend_bundle
+        return SpendBundle(solution_list, aggsig)
 
     def generate_signed_transaction(
         self,
@@ -215,6 +208,4 @@ class WalletTool:
         transaction = self.generate_unsigned_transaction(
             amount, newpuzzlehash, coin, condition_dic, fee
         )
-        if transaction is None:
-            return None
-        return self.sign_transaction(transaction)
+        return None if transaction is None else self.sign_transaction(transaction)

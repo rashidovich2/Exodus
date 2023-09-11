@@ -24,18 +24,22 @@ def help_message():
     print("usage: chia keys command")
     print(f"command can be any of {command_list}")
     print("")
-    print(f"chia keys generate  (generates and adds a key to keychain)")
-    print(f"chia keys generate_and_print  (generates but does NOT add to keychain)")
-    print(f"chia keys show (displays all the keys in keychain)")
-    print(f"chia keys add_seed -m [24 words] (add a private key through the mnemonic)")
-    print(f"chia keys add -k [extended key] (add an extended private key in hex form)")
+    print("chia keys generate  (generates and adds a key to keychain)")
+    print("chia keys generate_and_print  (generates but does NOT add to keychain)")
+    print("chia keys show (displays all the keys in keychain)")
     print(
-        f"chia keys add_not_extended -k [key] (add a not extended private key in hex form)"
+        "chia keys add_seed -m [24 words] (add a private key through the mnemonic)"
     )
     print(
-        f"chia keys delete -f [fingerprint] (delete a key by it's pk fingerprint in hex form)"
+        "chia keys add -k [extended key] (add an extended private key in hex form)"
     )
-    print(f"chia keys delete_all (delete all private keys in keychain)")
+    print(
+        "chia keys add_not_extended -k [key] (add a not extended private key in hex form)"
+    )
+    print(
+        "chia keys delete -f [fingerprint] (delete a key by it's pk fingerprint in hex form)"
+    )
+    print("chia keys delete_all (delete all private keys in keychain)")
 
 
 def make_parser(parser):
@@ -220,24 +224,24 @@ def handler(args, parser):
         help_message()
         parser.exit(1)
 
-    if command == "generate":
-        generate_and_add()
-        check_keys(root_path)
-    elif command == "show":
-        show_all_keys()
-    elif command == "add_seed":
-        add_private_key_seed(args.mnemonic)
-        check_keys(root_path)
-    elif command == "add":
+    if command == "add":
         add_private_key(args)
         check_keys(root_path)
     elif command == "add_not_extended":
         add_private_key_not_extended(args)
+        check_keys(root_path)
+    elif command == "add_seed":
+        add_private_key_seed(args.mnemonic)
         check_keys(root_path)
     elif command == "delete":
         delete(args)
         check_keys(root_path)
     elif command == "delete_all":
         keychain.delete_all_keys()
-    if command == "generate_and_print":
+    elif command == "generate":
+        generate_and_add()
+        check_keys(root_path)
+    elif command == "generate_and_print":
         generate_and_print()
+    elif command == "show":
+        show_all_keys()

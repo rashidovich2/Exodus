@@ -57,9 +57,7 @@ class BlockStore:
         cursor = await self.db.execute("SELECT header from headers WHERE is_lca=1")
         row = await cursor.fetchone()
         await cursor.close()
-        if row is not None:
-            return Header.from_bytes(row[0])
-        return None
+        return Header.from_bytes(row[0]) if row is not None else None
 
     async def set_lca(self, header_hash: bytes32) -> None:
         cursor_1 = await self.db.execute("UPDATE headers SET is_lca=0 WHERE is_lca=1")
@@ -79,7 +77,7 @@ class BlockStore:
     async def set_tips(self, header_hashes: List[bytes32]) -> None:
         cursor_1 = await self.db.execute("UPDATE headers SET is_tip=0 WHERE is_tip=1")
         await cursor_1.close()
-        tips_db = tuple([h.hex() for h in header_hashes])
+        tips_db = tuple(h.hex() for h in header_hashes)
 
         formatted_str = f'UPDATE headers SET is_tip=1 WHERE header_hash in ({"?," * (len(tips_db) - 1)}?)'
         cursor_2 = await self.db.execute(formatted_str, tips_db)
@@ -115,12 +113,10 @@ class BlockStore:
         )
         row = await cursor.fetchone()
         await cursor.close()
-        if row is not None:
-            return FullBlock.from_bytes(row[0])
-        return None
+        return FullBlock.from_bytes(row[0]) if row is not None else None
 
     async def get_blocks_at(self, heights: List[uint32]) -> List[FullBlock]:
-        if len(heights) == 0:
+        if not heights:
             return []
 
         heights_db = tuple(heights)

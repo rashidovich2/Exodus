@@ -11,8 +11,7 @@ from tests.setup_nodes import setup_two_nodes, test_constants, bt
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestFullSync:
@@ -43,7 +42,7 @@ class TestFullSync:
             # same tip at height num_blocks - 1 (or at least num_blocks - 3, in case we sync to a
             # worse tip)
             if (
-                max([h.height for h in full_node_2.blockchain.get_current_tips()])
+                max(h.height for h in full_node_2.blockchain.get_current_tips())
                 >= num_blocks - 3
             ):
                 print(f"Time taken to sync {num_blocks} is {time.time() - start}")
@@ -93,7 +92,7 @@ class TestFullSync:
             # The second node should eventually catch up to the first one, and have the
             # same tip at height num_blocks - 1.
             if (
-                max([h.height for h in full_node_2.blockchain.get_current_tips()])
+                max(h.height for h in full_node_2.blockchain.get_current_tips())
                 == num_blocks - 1
             ):
                 print(f"Time taken to sync {num_blocks} is {time.time() - start}")

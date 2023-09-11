@@ -32,8 +32,7 @@ test_constants["GENESIS_BLOCK"] = bytes(
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestStore:

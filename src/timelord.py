@@ -23,15 +23,14 @@ class Timelord:
     def __init__(self, config: Dict, constants: Dict):
         self.constants = constants
         self.config: Dict = config
-        self.ips_estimate = {
-            k: v
-            for k, v in list(
+        self.ips_estimate = dict(
+            list(
                 zip(
                     self.config["vdf_clients"]["ip"],
                     self.config["vdf_clients"]["ips_estimate"],
                 )
             )
-        }
+        )
         self.lock: Lock = Lock()
         self.active_discriminants: Dict[bytes32, Tuple[StreamWriter, uint64, str]] = {}
         self.best_weight_three_proofs: int = -1
@@ -79,16 +78,13 @@ class Timelord:
             for k, v in self.active_discriminants.items()
             if v[1] == worst_weight_active
         }
-        no_iters = {
+        if no_iters := {
             k: v
             for k, v in low_weights.items()
             if k not in self.pending_iters or len(self.pending_iters[k]) == 0
-        }
-
-        # If we have process(es) with no iters, stop the one that started the latest
-        if len(no_iters) > 0:
+        }:
             latest_start_time = max(
-                [self.active_discriminants_start_time[k] for k, _ in no_iters.items()]
+                self.active_discriminants_start_time[k] for k in no_iters
             )
             stop_discriminant, stop_writer = next(
                 (k, v[0])
@@ -97,10 +93,10 @@ class Timelord:
             )
         else:
             # Otherwise, pick the one that finishes one proof the latest.
-            best_iter = {k: min(self.pending_iters[k]) for k, _ in low_weights.items()}
+            best_iter = {k: min(self.pending_iters[k]) for k in low_weights}
             time_taken = {
                 k: time.time() - self.active_discriminants_start_time[k]
-                for k, _ in low_weights.items()
+                for k in low_weights
             }
 
             client_ip = [v[2] for _, v in low_weights.items()]
@@ -117,7 +113,7 @@ class Timelord:
                 k: max(0, (best_iter[k] - time_taken[k] * ips[v[2]]) / ips[v[2]])
                 for k, v in low_weights.items()
             }
-            worst_finish = max([v for v in expected_finish.values()])
+            worst_finish = max(list(expected_finish.values()))
             log.info(f"Worst finish time: {worst_finish}s")
             stop_discriminant, stop_writer = next(
                 (k, v[0])
@@ -200,7 +196,7 @@ class Timelord:
                             continue
                         self.submitted_iters[challenge_hash].append(iter)
                         if len(str(iter)) < 10:
-                            iter_size = "0" + str(len(str(iter)))
+                            iter_size = f"0{len(str(iter))}"
                         else:
                             iter_size = str(len(str(iter)))
                         writer.write((iter_size + str(iter)).encode())
@@ -220,13 +216,13 @@ class Timelord:
 
         prefix = str(len(str(disc)))
         if len(prefix) == 1:
-            prefix = "00" + prefix
+            prefix = f"00{prefix}"
         writer.write((prefix + str(disc)).encode())
         await writer.drain()
 
         try:
             ok = await reader.readexactly(2)
-        except (asyncio.IncompleteReadError, ConnectionResetError, Exception) as e:
+        except (asyncio.IncompleteReadError, Exception) as e:
             log.warning(f"{type(e)} {e}")
             async with self.lock:
                 if challenge_hash not in self.done_discriminants:
@@ -248,7 +244,7 @@ class Timelord:
         while True:
             try:
                 data = await reader.readexactly(4)
-            except (asyncio.IncompleteReadError, ConnectionResetError, Exception) as e:
+            except (asyncio.IncompleteReadError, Exception) as e:
                 log.warning(f"{type(e)} {e}")
                 async with self.lock:
                     if challenge_hash in self.active_discriminants:
@@ -264,8 +260,6 @@ class Timelord:
                 msg = data.decode()
             except Exception as e:
                 log.error(f"Exception while decoding data {e}")
-                pass
-
             if msg == "STOP":
                 log.info(f"Stopped client running on ip {ip}.")
                 async with self.lock:
@@ -280,11 +274,7 @@ class Timelord:
                     stdout_bytes_io: io.BytesIO = io.BytesIO(
                         bytes.fromhex(proof.decode())
                     )
-                except (
-                    asyncio.IncompleteReadError,
-                    ConnectionResetError,
-                    Exception,
-                ) as e:
+                except (asyncio.IncompleteReadError, Exception) as e:
                     log.warning(f"{type(e)} {e}")
                     async with self.lock:
                         if challenge_hash in self.active_discriminants:
@@ -342,7 +332,7 @@ class Timelord:
         while not self._is_shutdown:
             async with self.lock:
                 if len(self.discriminant_queue) > 0:
-                    max_weight = max([h for _, h in self.discriminant_queue])
+                    max_weight = max(h for _, h in self.discriminant_queue)
                     if max_weight <= self.best_weight_three_proofs:
                         self.done_discriminants.extend(
                             [d for d, _ in self.discriminant_queue]
@@ -352,23 +342,20 @@ class Timelord:
                         max_weight_disc = [
                             d for d, h in self.discriminant_queue if h == max_weight
                         ]
-                        with_iters = [
+                        if with_iters := [
                             d
                             for d in max_weight_disc
                             if d in self.pending_iters
                             and len(self.pending_iters[d]) != 0
-                        ]
-                        if len(with_iters) == 0:
-                            disc = max_weight_disc[0]
-                        else:
-                            min_iter = min(
-                                [min(self.pending_iters[d]) for d in with_iters]
-                            )
+                        ]:
+                            min_iter = min(min(self.pending_iters[d]) for d in with_iters)
                             disc = next(
                                 d
                                 for d in with_iters
                                 if min(self.pending_iters[d]) == min_iter
                             )
+                        else:
+                            disc = max_weight_disc[0]
                         if len(self.free_clients) != 0:
                             ip, sr, sw = self.free_clients[0]
                             self.free_clients = self.free_clients[1:]
@@ -385,18 +372,16 @@ class Timelord:
                                 if time.time() < end_time + self.max_connection_time
                             ]
                             if (
-                                len(self.potential_free_clients) == 0
+                                not self.potential_free_clients
                                 and len(self.active_discriminants) > 0
                             ):
                                 worst_weight_active = min(
-                                    [
-                                        h
-                                        for (
-                                            _,
-                                            h,
-                                            _,
-                                        ) in self.active_discriminants.values()
-                                    ]
+                                    h
+                                    for (
+                                        _,
+                                        h,
+                                        _,
+                                    ) in self.active_discriminants.values()
                                 )
                                 if max_weight > worst_weight_active:
                                     await self._stop_worst_process(worst_weight_active)

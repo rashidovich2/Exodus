@@ -12,8 +12,7 @@ def verify_weight(
     from genesis, verifying proof of space, proof of time, and difficulty resets.
     # TODO: implement
     """
-    for height, block in enumerate(proof_blocks):
-        if not block.height == height + fork_point.height + 1:
-            return False
-
-    return True
+    return all(
+        block.height == height + fork_point.height + 1
+        for height, block in enumerate(proof_blocks)
+    )

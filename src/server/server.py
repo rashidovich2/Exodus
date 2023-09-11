@@ -81,11 +81,7 @@ class ChiaServer:
 
         # Taks list to keep references to tasks, so they don'y get GCd
         self._tasks: List[asyncio.Task] = [self._initialize_ping_task()]
-        if name:
-            self.log = logging.getLogger(name)
-        else:
-            self.log = logging.getLogger(__name__)
-
+        self.log = logging.getLogger(name) if name else logging.getLogger(__name__)
         # Our unique random node id that we will send to other peers, regenerated on launch
         node_id = create_node_id()
 
@@ -128,12 +124,7 @@ class ChiaServer:
             reader, writer = await asyncio.open_connection(
                 target_node.host, int(target_node.port), ssl=ssl_context
             )
-        except (
-            ConnectionRefusedError,
-            TimeoutError,
-            OSError,
-            asyncio.TimeoutError,
-        ) as e:
+        except (TimeoutError, OSError, asyncio.TimeoutError) as e:
             self.log.warning(
                 f"Could not connect to {target_node}. {type(e)}{str(e)}. Aborting and removing peer."
             )

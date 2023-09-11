@@ -66,7 +66,7 @@ def conditions_by_opcode(
     cvp: ConditionVarPair
     for cvp in conditions:
         if cvp.opcode not in d:
-            d[cvp.opcode] = list()
+            d[cvp.opcode] = []
         d[cvp.opcode].append(cvp)
     return d
 
@@ -97,10 +97,7 @@ def hash_key_pairs_for_conditions_dict(
 def aggsig_in_conditions_dict(
     conditions_dict: Dict[ConditionOpcode, List[ConditionVarPair]]
 ) -> List[ConditionVarPair]:
-    agg_sig_conditions = []
-    for _ in conditions_dict.get(ConditionOpcode.AGG_SIG, []):
-        agg_sig_conditions.append(_)
-    return agg_sig_conditions
+    return list(conditions_dict.get(ConditionOpcode.AGG_SIG, []))
 
 
 def created_outputs_for_conditions_dict(

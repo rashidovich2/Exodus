@@ -11,8 +11,7 @@ from tests.setup_nodes import setup_two_nodes, test_constants, bt
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestRpc:

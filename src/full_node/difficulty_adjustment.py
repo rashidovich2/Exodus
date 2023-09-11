@@ -221,12 +221,7 @@ def get_next_min_iters(
         block2 = headers.get(height_to_hash[height2], None)
     assert block2 is not None
 
-    if block1 is not None:
-        iters1 = block1.data.total_iters
-    else:
-        # In the case of height == -1, iters = 0
-        iters1 = uint64(0)
-
+    iters1 = block1.data.total_iters if block1 is not None else uint64(0)
     iters2 = block2.data.total_iters
 
     min_iters_precise = uint64(

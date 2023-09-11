@@ -13,8 +13,7 @@ from src.consensus.block_rewards import calculate_base_fee, calculate_block_rewa
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestWalletSimulator:
@@ -54,15 +53,13 @@ class TestWalletSimulator:
         ph = await wallet.get_new_puzzlehash()
 
         await server_2.start_client(PeerInfo("localhost", uint16(server_1._port)), None)
-        for i in range(1, num_blocks):
+        for _ in range(1, num_blocks):
             await full_node_1.farm_new_block(FarmNewBlockProtocol(ph))
 
         await asyncio.sleep(3)
         funds = sum(
-            [
-                calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
-                for i in range(1, num_blocks - 2)
-            ]
+            calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
+            for i in range(1, num_blocks - 2)
         )
         assert await wallet.get_confirmed_balance() == funds
 
@@ -78,14 +75,12 @@ class TestWalletSimulator:
 
         await server_2.start_client(PeerInfo("localhost", uint16(server_1._port)), None)
 
-        for i in range(0, num_blocks):
+        for _ in range(0, num_blocks):
             await full_node_1.farm_new_block(FarmNewBlockProtocol(ph))
 
         funds = sum(
-            [
-                calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
-                for i in range(1, num_blocks - 1)
-            ]
+            calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
+            for i in range(1, num_blocks - 1)
         )
 
         await asyncio.sleep(2)
@@ -107,16 +102,14 @@ class TestWalletSimulator:
         assert confirmed_balance == funds
         assert unconfirmed_balance == funds - 10
 
-        for i in range(0, num_blocks):
+        for _ in range(0, num_blocks):
             await full_node_1.farm_new_block(FarmNewBlockProtocol(ph))
 
         await asyncio.sleep(2)
 
         new_funds = sum(
-            [
-                calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
-                for i in range(1, (2 * num_blocks) - 1)
-            ]
+            calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
+            for i in range(1, (2 * num_blocks) - 1)
         )
 
         confirmed_balance = await wallet.get_confirmed_balance()
@@ -135,15 +128,13 @@ class TestWalletSimulator:
         ph = await wallet.get_new_puzzlehash()
 
         await server_2.start_client(PeerInfo("localhost", uint16(server_1._port)), None)
-        for i in range(1, num_blocks):
+        for _ in range(1, num_blocks):
             await full_node_1.farm_new_block(FarmNewBlockProtocol(ph))
 
         await asyncio.sleep(3)
         funds = sum(
-            [
-                calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
-                for i in range(1, num_blocks - 2)
-            ]
+            calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
+            for i in range(1, num_blocks - 2)
         )
         assert await wallet.get_confirmed_balance() == funds
 
@@ -153,10 +144,8 @@ class TestWalletSimulator:
         await asyncio.sleep(3)
 
         funds = sum(
-            [
-                calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
-                for i in range(1, 5)
-            ]
+            calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
+            for i in range(1, 5)
         )
 
         assert await wallet.get_confirmed_balance() == funds
@@ -178,7 +167,7 @@ class TestWalletSimulator:
             PeerInfo("localhost", uint16(server_0._port)), None
         )
 
-        for i in range(1, num_blocks):
+        for _ in range(1, num_blocks):
             await full_node_0.farm_new_block(FarmNewBlockProtocol(ph))
 
         all_blocks = await full_node_0.get_current_blocks(full_node_0.get_tip())
@@ -195,10 +184,8 @@ class TestWalletSimulator:
 
         await asyncio.sleep(2)
         funds = sum(
-            [
-                calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
-                for i in range(1, num_blocks - 2)
-            ]
+            calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
+            for i in range(1, num_blocks - 2)
         )
         assert (
             await wallet_0.wallet_state_manager.main_wallet.get_confirmed_balance()
@@ -252,14 +239,12 @@ class TestWalletSimulator:
             PeerInfo("localhost", uint16(full_node_server._port)), None
         )
 
-        for i in range(0, num_blocks):
+        for _ in range(0, num_blocks):
             await full_node_0.farm_new_block(FarmNewBlockProtocol(ph))
 
         funds = sum(
-            [
-                calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
-                for i in range(1, num_blocks - 1)
-            ]
+            calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
+            for i in range(1, num_blocks - 1)
         )
 
         await asyncio.sleep(2)
@@ -283,16 +268,14 @@ class TestWalletSimulator:
         assert confirmed_balance == funds
         assert unconfirmed_balance == funds - 10
 
-        for i in range(0, 7):
+        for _ in range(0, 7):
             await full_node_0.farm_new_block(FarmNewBlockProtocol(token_bytes()))
 
         await asyncio.sleep(1)
 
         new_funds = sum(
-            [
-                calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
-                for i in range(1, num_blocks + 1)
-            ]
+            calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
+            for i in range(1, num_blocks + 1)
         )
 
         # Full node height 17, wallet height 15
@@ -309,7 +292,7 @@ class TestWalletSimulator:
         )
         await wallet_1.push_transaction(tx)
 
-        for i in range(0, 7):
+        for _ in range(0, 7):
             await full_node_0.farm_new_block(FarmNewBlockProtocol(token_bytes()))
 
         await asyncio.sleep(1)
@@ -334,14 +317,12 @@ class TestWalletSimulator:
 
         await server_2.start_client(PeerInfo("localhost", uint16(server_1._port)), None)
 
-        for i in range(0, num_blocks):
+        for _ in range(0, num_blocks):
             await full_node_1.farm_new_block(FarmNewBlockProtocol(ph))
 
         funds = sum(
-            [
-                calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
-                for i in range(1, num_blocks - 1)
-            ]
+            calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
+            for i in range(1, num_blocks - 1)
         )
 
         await asyncio.sleep(2)
@@ -368,16 +349,14 @@ class TestWalletSimulator:
         assert confirmed_balance == funds
         assert unconfirmed_balance == funds - tx_amount - tx_fee
 
-        for i in range(0, num_blocks):
+        for _ in range(0, num_blocks):
             await full_node_1.farm_new_block(FarmNewBlockProtocol(token_bytes()))
 
         await asyncio.sleep(2)
 
         new_funds = sum(
-            [
-                calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
-                for i in range(1, num_blocks + 1)
-            ]
+            calculate_base_fee(uint32(i)) + calculate_block_reward(uint32(i))
+            for i in range(1, num_blocks + 1)
         )
 
         confirmed_balance = await wallet.get_confirmed_balance()

@@ -53,16 +53,16 @@ init_prehashed()
 
 def hashdown(mystr):
     assert len(mystr) == 66
-    h = prehashed[bytes(mystr[0:1] + mystr[33:34])].copy()
+    h = prehashed[bytes(mystr[:1] + mystr[33:34])].copy()
     h.update(mystr[1:33] + mystr[34:])
     return h.digest()[:32]
 
 
 def compress_root(mystr):
     assert len(mystr) == 33
-    if mystr[0:1] == MIDDLE:
+    if mystr[:1] == MIDDLE:
         return mystr[1:]
-    if mystr[0:1] == EMPTY:
+    if mystr[:1] == EMPTY:
         assert mystr[1:] == BLANK
         return BLANK
     return sha256(mystr).digest()[:32]
@@ -172,9 +172,7 @@ class TerminalNode:
         return MiddleNode(nextvals)
 
     def remove(self, toremove, depth):
-        if toremove == self.hash:
-            return _empty
-        return self
+        return _empty if toremove == self.hash else self
 
     def is_included(self, tocheck, depth, proof):
         proof.append(TERMINAL + self.hash)
@@ -233,7 +231,7 @@ class MiddleNode:
         newchild = child.add(toadd, depth + 1)
         if newchild is child:
             return self
-        newvals = [x for x in self.children]
+        newvals = list(self.children)
         newvals[bit] = newchild
         return MiddleNode(newvals)
 
@@ -248,7 +246,7 @@ class MiddleNode:
             return otherchild
         if newchild.is_terminal() and otherchild.is_empty():
             return newchild
-        newvals = [x for x in self.children]
+        newvals = list(self.children)
         newvals[bit] = newchild
         return MiddleNode(newvals)
 

@@ -41,11 +41,7 @@ class Wallet:
     ):
         self = Wallet()
 
-        if name:
-            self.log = logging.getLogger(name)
-        else:
-            self.log = logging.getLogger(__name__)
-
+        self.log = logging.getLogger(name) if name else logging.getLogger(__name__)
         self.wallet_state_manager = wallet_state_manager
 
         self.wallet_info = info
@@ -66,10 +62,9 @@ class Wallet:
         return await self.wallet_state_manager.get_frozen_balance(self.wallet_info.id)
 
     async def get_spendable_balance(self) -> uint64:
-        spendable_am = await self.wallet_state_manager.get_confirmed_spendable_balance_for_wallet(
+        return await self.wallet_state_manager.get_confirmed_spendable_balance_for_wallet(
             self.wallet_info.id
         )
-        return spendable_am
 
     async def get_pending_change_balance(self) -> uint64:
         unconfirmed_tx = await self.wallet_state_manager.tx_store.get_unconfirmed_for_wallet(
@@ -121,13 +116,16 @@ class Wallet:
     ):
         condition_list = []
         if primaries:
-            for primary in primaries:
-                condition_list.append(
-                    make_create_coin_condition(primary["puzzlehash"], primary["amount"])
+            condition_list.extend(
+                make_create_coin_condition(
+                    primary["puzzlehash"], primary["amount"]
                 )
+                for primary in primaries
+            )
         if consumed:
-            for coin in consumed:
-                condition_list.append(make_assert_coin_consumed_condition(coin))
+            condition_list.extend(
+                make_assert_coin_consumed_condition(coin) for coin in consumed
+            )
         if min_time > 0:
             condition_list.append(make_assert_time_exceeds_condition(min_time))
         if me:
@@ -193,19 +191,6 @@ class Wallet:
                 raise ValueError(
                     "Can't make this transaction at the moment. Waiting for the change from the previous transaction."
                 )
-                unconfirmed_additions = await self.wallet_state_manager.unconfirmed_additions_for_wallet(
-                    self.wallet_info.id
-                )
-                for coin in unconfirmed_additions.values():
-                    if sum > amount:
-                        break
-                    if coin.name() in unconfirmed_removals:
-                        continue
-
-                    sum += coin.amount
-                    used_coins.add(coin)
-                    self.log.info(f"Selected used coin: {coin.name()}")
-
         if sum >= amount:
             self.log.info(f"Successfully selected coins: {used_coins}")
             return used_coins
@@ -237,7 +222,7 @@ class Wallet:
             return []
 
         self.log.info(f"coins is not None {coins}")
-        spend_value = sum([coin.amount for coin in coins])
+        spend_value = sum(coin.amount for coin in coins)
         change = spend_value - amount - fee
 
         spends: List[Tuple[Program, CoinSolution]] = []
@@ -330,24 +315,18 @@ class Wallet:
             )
             for (puzzle, coin_solution) in spends
         ]
-        spend_bundle = SpendBundle(solution_list, aggsig)
-
-        return spend_bundle
+        return SpendBundle(solution_list, aggsig)
 
     async def generate_signed_transaction_dict(
         self, data: Dict[str, Any]
     ) -> Optional[TransactionRecord]:
         """ Use this to generate transaction. """
         # Check that both are integers
-        if not isinstance(data["amount"], int) or not isinstance(data["amount"], int):
+        if not isinstance(data["amount"], int):
             raise ValueError("An integer amount or fee is required (too many decimals)")
         amount = uint64(data["amount"])
 
-        if "fee" in data:
-            fee = uint64(data["fee"])
-        else:
-            fee = uint64(0)
-
+        fee = uint64(data["fee"]) if "fee" in data else uint64(0)
         puzzle_hash = bytes32(bytes.fromhex(data["puzzle_hash"]))
 
         return await self.generate_signed_transaction(amount, puzzle_hash, fee)
@@ -375,15 +354,11 @@ class Wallet:
             return None
 
         now = uint64(int(time.time()))
-        add_list: List[Coin] = []
         rem_list: List[Coin] = []
 
-        for add in spend_bundle.additions():
-            add_list.append(add)
-        for rem in spend_bundle.removals():
-            rem_list.append(rem)
-
-        tx_record = TransactionRecord(
+        add_list: List[Coin] = list(spend_bundle.additions())
+        rem_list.extend(iter(spend_bundle.removals()))
+        return TransactionRecord(
             confirmed_at_index=uint32(0),
             created_at_time=now,
             to_puzzle_hash=puzzle_hash,
@@ -398,8 +373,6 @@ class Wallet:
             wallet_id=self.wallet_info.id,
             sent_to=[],
         )
-
-        return tx_record
 
     async def push_transaction(self, tx: TransactionRecord) -> None:
         """ Use this API to send transactions. """
@@ -443,7 +416,7 @@ class Wallet:
             return None
 
         # Calculate output amount given sum of utxos
-        spend_value = sum([coin.amount for coin in utxos])
+        spend_value = sum(coin.amount for coin in utxos)
         chia_amount = spend_value + chia_amount
 
         # Create coin solutions for each utxo
@@ -468,5 +441,4 @@ class Wallet:
             sigs = sigs + new_sigs
 
         aggsig = BLSSignature.aggregate(sigs)
-        spend_bundle = SpendBundle(list_of_solutions, aggsig)
-        return spend_bundle
+        return SpendBundle(list_of_solutions, aggsig)

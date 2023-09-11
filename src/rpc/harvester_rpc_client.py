@@ -47,16 +47,15 @@ class HarvesterRpcClient:
         self, filename: str, plot_sk: PrivateKey, pool_pk: Optional[PublicKey] = None
     ) -> bool:
         plot_sk_str = bytes(plot_sk).hex()
-        if pool_pk is not None:
-            pool_pk_str = bytes(pool_pk).hex()
-            return await self.fetch(
-                "add_plot",
-                {"filename": filename, "plot_sk": plot_sk_str, "pool_pk": pool_pk_str},
-            )
-        else:
+        if pool_pk is None:
             return await self.fetch(
                 "add_plot", {"filename": filename, "plot_sk": plot_sk_str}
             )
+        pool_pk_str = bytes(pool_pk).hex()
+        return await self.fetch(
+            "add_plot",
+            {"filename": filename, "plot_sk": plot_sk_str, "pool_pk": pool_pk_str},
+        )
 
     async def get_connections(self) -> List[Dict]:
         response = await self.fetch("get_connections", {})
@@ -65,7 +64,7 @@ class HarvesterRpcClient:
         return response["connections"]
 
     async def open_connection(self, host: str, port: int) -> Dict:
-        return await self.fetch("open_connection", {"host": host, "port": int(port)})
+        return await self.fetch("open_connection", {"host": host, "port": port})
 
     async def close_connection(self, node_id: bytes32) -> Dict:
         return await self.fetch("close_connection", {"node_id": node_id.hex()})

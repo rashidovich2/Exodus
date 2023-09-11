@@ -22,7 +22,7 @@ def service_kwargs_for_farmer(root_path):
     config_pool = load_config_cli(root_path, "config.yaml", "pool")
     api = Farmer(config, config_pool, keychain)
 
-    kwargs = dict(
+    return dict(
         root_path=root_path,
         api=api,
         node_type=NodeType.FARMER,
@@ -33,7 +33,6 @@ def service_kwargs_for_farmer(root_path):
         on_connect_callback=api._on_connect,
         rpc_start_callback_port=(start_farmer_rpc_server, config["rpc_port"]),
     )
-    return kwargs
 
 
 def main():

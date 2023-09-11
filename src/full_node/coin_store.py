@@ -73,8 +73,8 @@ class CoinStore:
         )
 
         await self.coin_record_db.commit()
-        self.lca_coin_records = dict()
-        self.head_diffs = dict()
+        self.lca_coin_records = {}
+        self.head_diffs = {}
         return self
 
     async def add_lcas(self, blocks: List[FullBlock]):
@@ -107,7 +107,7 @@ class CoinStore:
     # Received new tip, just update diffs
     async def new_heads(self, blocks: List[FullBlock]):
         last: FullBlock = blocks[-1]
-        diff_store: DiffStore = await DiffStore.create(last.header, dict())
+        diff_store: DiffStore = await DiffStore.create(last.header, {})
 
         block: FullBlock
         for block in blocks:

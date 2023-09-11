@@ -16,8 +16,7 @@ from src.consensus.coinbase import create_coinbase_coin
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestWalletSync:

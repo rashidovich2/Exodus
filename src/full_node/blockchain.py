@@ -125,7 +125,7 @@ class Blockchain:
         tips_db: List[Header] = await self.block_store.get_tips()
         headers_db: Dict[bytes32, Header] = await self.block_store.get_headers()
 
-        assert (lca_db is None) == (len(tips_db) == 0) == (len(headers_db) == 0)
+        assert (lca_db is None) == (not tips_db) == (not headers_db)
         if lca_db is None:
             result, removed, error_code = await self.receive_block(
                 self.genesis, sync_mode=False
@@ -203,10 +203,7 @@ class Blockchain:
         """
         True iff the block is the direct ancestor of a head.
         """
-        for head in self.tips:
-            if block.prev_header_hash == head.header_hash:
-                return True
-        return False
+        return any(block.prev_header_hash == head.header_hash for head in self.tips)
 
     def contains_block(self, header_hash: bytes32) -> bool:
         return header_hash in self.headers
@@ -363,7 +360,7 @@ class Blockchain:
         than one of the heads.
         """
         removed: Optional[Header] = None
-        if len(self.tips) == 0 or block.weight > min([b.weight for b in self.tips]):
+        if len(self.tips) == 0 or block.weight > min(b.weight for b in self.tips):
             self.tips.append(block)
             while len(self.tips) > self.constants["NUMBER_OF_HEADS"]:
                 self.tips.sort(key=lambda b: b.weight, reverse=True)
@@ -485,7 +482,7 @@ class Blockchain:
                 return
             blocks.append(full)
             tip_hash = full.prev_header_hash
-        if len(blocks) == 0:
+        if not blocks:
             return
         blocks.reverse()
         await self.coin_store.new_heads(blocks)
@@ -593,8 +590,7 @@ class Blockchain:
             # 16. If genesis, the fee must be the base fee, agg_sig must be None, and merkle roots must be valid
             if fee_base != block.header.data.fees_coin.amount:
                 return Err.INVALID_BLOCK_FEE_AMOUNT
-            root_error = self._validate_merkle_root(block)
-            if root_error:
+            if root_error := self._validate_merkle_root(block):
                 return root_error
             if block.header.data.aggregated_signature is not None:
                 log.error("1")

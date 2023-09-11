@@ -62,11 +62,7 @@ class CCWallet:
         self.base_puzzle_program = None
         self.base_inner_puzzle_hash = None
         self.standard_wallet = wallet
-        if name:
-            self.log = logging.getLogger(name)
-        else:
-            self.log = logging.getLogger(__name__)
-
+        self.log = logging.getLogger(name) if name else logging.getLogger(__name__)
         self.wallet_state_manager = wallet_state_manager
 
         self.cc_info = CCInfo(None, [], None)
@@ -143,11 +139,7 @@ class CCWallet:
         self.base_puzzle_program = None
         self.base_inner_puzzle_hash = None
         self.standard_wallet = wallet
-        if name:
-            self.log = logging.getLogger(name)
-        else:
-            self.log = logging.getLogger(__name__)
-
+        self.log = logging.getLogger(name) if name else logging.getLogger(__name__)
         self.wallet_state_manager = wallet_state_manager
 
         self.cc_info = CCInfo(cc_wallet_puzzles.cc_make_core(colour), [], colour)
@@ -170,11 +162,7 @@ class CCWallet:
     ):
         self = CCWallet()
 
-        if name:
-            self.log = logging.getLogger(name)
-        else:
-            self.log = logging.getLogger(__name__)
-
+        self.log = logging.getLogger(name) if name else logging.getLogger(__name__)
         self.wallet_state_manager = wallet_state_manager
         self.wallet_info = wallet_info
         self.standard_wallet = wallet
@@ -230,8 +218,7 @@ class CCWallet:
         await self.save_info(cc_info)
 
     async def get_colour(self):
-        colour = cc_wallet_puzzles.get_genesis_from_core(self.cc_info.my_core)
-        return colour
+        return cc_wallet_puzzles.get_genesis_from_core(self.cc_info.my_core)
 
     async def coin_added(
         self, coin: Coin, height: int, header_hash: bytes32, removals: List[Coin]
@@ -329,12 +316,14 @@ class CCWallet:
                 if wallet_id != self.wallet_info.id:
                     continue
 
-                coin = None
-                for removed in removals:
-                    if removed.name() == coin_name:
-                        coin = removed
-                        break
-
+                coin = next(
+                    (
+                        removed
+                        for removed in removals
+                        if removed.name() == coin_name
+                    ),
+                    None,
+                )
                 if coin is not None:
                     if cc_wallet_puzzles.check_is_cc_puzzle(puzzle_program):
                         puzzle_string = binutils.disassemble(puzzle_program)
@@ -378,21 +367,17 @@ class CCWallet:
             return self.do_replace(sexp.first(), magic, magic_replacement).cons(
                 self.do_replace(sexp.rest(), magic, magic_replacement)
             )
-        if sexp.as_atom() == magic:
-            return sexp.to(magic_replacement)
-        return sexp
+        return sexp.to(magic_replacement) if sexp.as_atom() == magic else sexp
 
     def specific_replace(self, old, magic, magic_replacement):
         """binutil.assemble is slow, using this hack to swap inner_puzzle_hash. """
-        new = old.replace(magic, magic_replacement)
-        return new
+        return old.replace(magic, magic_replacement)
 
     def fast_cc_puzzle(self, inner_puzzle_hash) -> Program:
         new_sexp = self.specific_replace(
             self.base_puzzle_program, self.base_inner_puzzle_hash, inner_puzzle_hash
         )
-        program = Program.from_bytes(new_sexp)
-        return program
+        return Program.from_bytes(new_sexp)
 
     def puzzle_for_pk(self, pubkey) -> Program:
         inner_puzzle_hash = self.standard_wallet.puzzle_for_pk(
@@ -430,13 +415,9 @@ class CCWallet:
         origin = coins.copy().pop()
         origin_id = origin.name()
 
-        parent_info = {}
-        parent_info[origin_id] = (
-            origin.parent_coin_info,
-            origin.puzzle_hash,
-            origin.amount,
-        )
-
+        parent_info = {
+            origin_id: (origin.parent_coin_info, origin.puzzle_hash, origin.amount)
+        }
         cc_inner = await self.get_new_inner_hash()
         cc_puzzle = cc_wallet_puzzles.cc_make_puzzle(cc_inner, self.cc_info.my_core)
         cc_puzzle_hash = cc_puzzle.get_tree_hash()
@@ -823,13 +804,9 @@ class CCWallet:
         origin_id = origin.name()
         # self.add_parent(origin_id, origin_id)
         cc_core = cc_wallet_puzzles.cc_make_core(origin_id)
-        parent_info = {}
-        parent_info[origin_id] = (
-            origin.parent_coin_info,
-            origin.puzzle_hash,
-            origin.amount,
-        )
-
+        parent_info = {
+            origin_id: (origin.parent_coin_info, origin.puzzle_hash, origin.amount)
+        }
         cc_info: CCInfo = CCInfo(cc_core, [], origin_id.hex())
         await self.save_info(cc_info)
 
@@ -849,8 +826,7 @@ class CCWallet:
 
         eve_spend = cc_generate_eve_spend(eve_coin, cc_puzzle)
 
-        full_spend = SpendBundle.aggregate([tx_record.spend_bundle, eve_spend])
-        return full_spend
+        return SpendBundle.aggregate([tx_record.spend_bundle, eve_spend])
 
     async def create_spend_bundle_relative_amount(
         self, cc_amount, zero_coin: Coin = None

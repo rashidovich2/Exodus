@@ -24,7 +24,6 @@ def initialize_logging(prefix: str, logging_config: Dict, root_path: Path):
         )
 
         logger = colorlog.getLogger()
-        logger.addHandler(handler)
     else:
         logging.basicConfig(
             filename=log_path,
@@ -35,8 +34,7 @@ def initialize_logging(prefix: str, logging_config: Dict, root_path: Path):
 
         logger = logging.getLogger()
         handler = RotatingFileHandler(log_path, maxBytes=20000000, backupCount=7)
-        logger.addHandler(handler)
-
+    logger.addHandler(handler)
     if "log_level" in logging_config:
         if logging_config["log_level"] == "CRITICAL":
             logger.setLevel(logging.CRITICAL)

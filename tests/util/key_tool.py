@@ -18,10 +18,10 @@ class KeyTool(dict):
             self[bls_private_key.public_key()] = bls_private_key
 
     def sign(self, aggsig_pair):
-        bls_private_key = self.get(aggsig_pair.public_key)
-        if not bls_private_key:
-            raise ValueError("unknown pubkey %s" % aggsig_pair.public_key)
-        return bls_private_key.sign(aggsig_pair.message_hash)
+        if bls_private_key := self.get(aggsig_pair.public_key):
+            return bls_private_key.sign(aggsig_pair.message_hash)
+        else:
+            raise ValueError(f"unknown pubkey {aggsig_pair.public_key}")
 
     def signature_for_solution(self, solution, coin_name):
         signatures = []

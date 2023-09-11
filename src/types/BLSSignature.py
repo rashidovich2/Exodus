@@ -31,17 +31,16 @@ class BLSSignature(Streamable):
 
     @classmethod
     def aggregate(cls, sigs):
-        sigs = [_ for _ in sigs if _.sig != ZERO96]
-        if len(sigs) == 0:
-            sig = ZERO96
-        else:
+        if sigs := [_ for _ in sigs if _.sig != ZERO96]:
             wrapped_sigs = [blspy.PrependSignature.from_bytes(_.sig) for _ in sigs]
             sig = bytes(blspy.PrependSignature.aggregate(wrapped_sigs))
+        else:
+            sig = ZERO96
         return cls(sig)
 
     def validate(self, hash_key_pairs: List[PkMessagePair]) -> bool:
         # check for special case of 0
-        if len(hash_key_pairs) == 0:
+        if not hash_key_pairs:
             return True
         message_hashes = [_.message_hash for _ in hash_key_pairs]
         public_keys = [blspy.PublicKey.from_bytes(_.public_key) for _ in hash_key_pairs]

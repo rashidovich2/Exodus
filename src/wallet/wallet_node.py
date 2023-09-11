@@ -96,11 +96,7 @@ class WalletNode:
         self.local_test = local_test
         for key, value in override_constants.items():
             self.constants[key] = value
-        if name:
-            self.log = logging.getLogger(name)
-        else:
-            self.log = logging.getLogger(__name__)
-
+        self.log = logging.getLogger(name) if name else logging.getLogger(__name__)
         db_path_key_suffix = str(private_key.get_public_key().get_fingerprint())
         path = path_from_root(
             self.root_path, f"{config['database_path']}-{db_path_key_suffix}"
@@ -141,8 +137,8 @@ class WalletNode:
         result: List[OutboundMessage] = []
         for action in actions:
             data = json.loads(action.data)
-            action_data = data["data"]["action_data"]
             if action.name == "request_generator":
+                action_data = data["data"]["action_data"]
                 header_hash = bytes32(hexstr_to_bytes(action_data["header_hash"]))
                 height = uint32(action_data["height"])
                 msg = Message(
@@ -301,11 +297,10 @@ class WalletNode:
             return
 
         self.log.info(f"Trying to connect to peers: {to_connect}")
-        tasks = []
-        for peer in to_connect:
-            tasks.append(
-                asyncio.create_task(self.server.start_client(peer, self._on_connect))
-            )
+        tasks = [
+            asyncio.create_task(self.server.start_client(peer, self._on_connect))
+            for peer in to_connect
+        ]
         await asyncio.gather(*tasks)
 
     async def _sync(self):

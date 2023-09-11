@@ -58,22 +58,18 @@ async def validate_unfinished_block_header(
         ):
             return (Err.INVALID_HARVESTER_SIGNATURE, None)
 
-    # 4. If not genesis, the previous block must exist
-    if prev_header_block is not None and block_header.prev_header_hash not in headers:
-        return (Err.DOES_NOT_EXTEND, None)
-
-    # 5. If not genesis, the timestamp must be >= the average timestamp of last 11 blocks
-    # and less than 2 hours in the future (if block height < 11, average all previous blocks).
-    # Average is the sum, int diveded by the number of timestamps
     if prev_header_block is not None:
+        if block_header.prev_header_hash not in headers:
+            return (Err.DOES_NOT_EXTEND, None)
+
         last_timestamps: List[uint64] = []
         curr = prev_header_block.header
         while len(last_timestamps) < constants["NUMBER_OF_TIMESTAMPS"]:
             last_timestamps.append(curr.data.timestamp)
-            fetched = headers.get(curr.prev_header_hash, None)
-            if not fetched:
+            if fetched := headers.get(curr.prev_header_hash, None):
+                curr = fetched
+            else:
                 break
-            curr = fetched
         if len(last_timestamps) != constants["NUMBER_OF_TIMESTAMPS"]:
             # For blocks 1 to 10, average timestamps of all previous blocks
             assert curr.height == 0
@@ -100,15 +96,13 @@ async def validate_unfinished_block_header(
         if not pos_quality_string:
             return (Err.INVALID_POSPACE, None)
 
-    if prev_header_block is not None:
-        # 11. If not genesis, the height on the previous block must be one less than on this block
-        if block_header.height != prev_header_block.height + 1:
-            return (Err.INVALID_HEIGHT, None)
-    else:
+    if prev_header_block is None:
         # 12. If genesis, the height must be 0
         if block_header.height != 0:
             return (Err.INVALID_HEIGHT, None)
 
+    elif block_header.height != prev_header_block.height + 1:
+        return (Err.INVALID_HEIGHT, None)
     # 13. The coinbase reward must match the block schedule
     coinbase_reward = calculate_block_reward(block_header.height)
     if coinbase_reward != block_header.data.coinbase.amount:
@@ -184,12 +178,11 @@ async def validate_finished_block_header(
 
     Does NOT validate transactions and fees.
     """
-    if not genesis:
-        if prev_header_block is None:
-            return Err.DOES_NOT_EXTEND
-    else:
+    if genesis:
         assert prev_header_block is None
 
+    elif prev_header_block is None:
+        return Err.DOES_NOT_EXTEND
     # 0. Validate unfinished block (check the rest of the conditions)
     err, number_of_iters = await validate_unfinished_block_header(
         constants,
@@ -213,7 +206,6 @@ async def validate_finished_block_header(
     if number_of_iters != block.proof_of_time.number_of_iterations:
         return Err.INVALID_NUM_ITERATIONS
 
-    # 2. the PoT must be valid, on a discriminant of size 1024, and the challenge_hash
     if not pre_validated:
         if not block.proof_of_time.is_valid(constants["DISCRIMINANT_SIZE_BITS"]):
             return Err.INVALID_POT
@@ -256,10 +248,9 @@ def pre_validate_finished_block_header(constants: Dict, data: bytes):
     ):
         return False, None
 
-    # 10. Check proof of space based on challenge
-    pos_quality_string = block.proof_of_space.verify_and_get_quality_string()
-
-    if not pos_quality_string:
+    if (
+        pos_quality_string := block.proof_of_space.verify_and_get_quality_string()
+    ):
+        return True, bytes(pos_quality_string)
+    else:
         return False, None
-
-    return True, bytes(pos_quality_string)

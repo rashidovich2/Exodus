@@ -124,14 +124,14 @@ async def show_async(args, parser):
                 "       LCA height:",
                 lca_block.height,
             )
-            print("Heights of tips: " + str([h.height for h in tips]))
+            print(f"Heights of tips: {[h.height for h in tips]}")
             print(f"Current difficulty: {difficulty}")
             print(f"Current VDF iterations per second: {ips:.0f}")
             print("Total iterations since genesis:", total_iters)
             print("")
             heads: List[HeaderBlock] = tips
             added_blocks: List[HeaderBlock] = []
-            while len(added_blocks) < num_blocks and len(heads) > 0:
+            while len(added_blocks) < num_blocks and heads:
                 heads = sorted(heads, key=lambda b: b.height, reverse=True)
                 max_block = heads[0]
                 if max_block not in added_blocks:
@@ -143,13 +143,10 @@ async def show_async(args, parser):
                 if prev is not None:
                     heads.append(prev)
 
-            latest_blocks_labels = []
-            for i, b in enumerate(added_blocks):
-                latest_blocks_labels.append(
-                    f"{b.height}:{b.header_hash}"
-                    f" {'LCA' if b.header_hash == lca_block.header_hash else ''}"
-                    f" {'TIP' if b.header_hash in [h.header_hash for h in tips] else ''}"
-                )
+            latest_blocks_labels = [
+                f"{b.height}:{b.header_hash} {'LCA' if b.header_hash == lca_block.header_hash else ''} {'TIP' if b.header_hash in [h.header_hash for h in tips] else ''}"
+                for b in added_blocks
+            ]
             for i in range(len(latest_blocks_labels)):
                 if i < 2:
                     print(latest_blocks_labels[i])

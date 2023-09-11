@@ -21,7 +21,7 @@ def make_sized_bytes(size):
     def __new__(cls, v):
         v = bytes(v)
         if not isinstance(v, bytes) or len(v) != size:
-            raise ValueError("bad %s initializer %s" % (name, v))
+            raise ValueError(f"bad {name} initializer {v}")
         return bytes.__new__(cls, v)  # type: ignore
 
     @classmethod  # type: ignore
@@ -47,7 +47,7 @@ def make_sized_bytes(size):
         return self.hex()
 
     def __repr__(self):
-        return "<%s: %s>" % (self.__class__.__name__, str(self))
+        return f"<{self.__class__.__name__}: {str(self)}>"
 
     namespace = dict(
         __new__=__new__,

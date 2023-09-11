@@ -310,10 +310,7 @@ async def setup_introducer(port, dic={}):
 
 
 async def setup_vdf_clients(port):
-    vdf_task = asyncio.create_task(spawn_process("127.0.0.1", port, 1))
-
-    yield vdf_task
-
+    yield asyncio.create_task(spawn_process("127.0.0.1", port, 1))
     await kill_processes()
 
 

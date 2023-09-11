@@ -9,10 +9,7 @@ def truncate_to_significant_bits(input_x: int, num_significant_bits: int) -> int
         return x
     lower = x.bit_length() - num_significant_bits
     mask = (1 << (x.bit_length())) - 1 - ((1 << (lower)) - 1)
-    if input_x < 0:
-        return -(x & mask)
-    else:
-        return x & mask
+    return -(x & mask) if input_x < 0 else x & mask
 
 
 def count_significant_bits(input_x: int) -> int:
@@ -21,7 +18,11 @@ def count_significant_bits(input_x: int) -> int:
     and leading zeroes. For example, for -0b000110010000, returns 5.
     """
     x = input_x
-    for i in range(x.bit_length()):
-        if x & (1 << i) > 0:
-            return x.bit_length() - i
-    return 0
+    return next(
+        (
+            x.bit_length() - i
+            for i in range(x.bit_length())
+            if x & (1 << i) > 0
+        ),
+        0,
+    )
