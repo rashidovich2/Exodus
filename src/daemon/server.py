@@ -50,13 +50,13 @@ if getattr(sys, "frozen", False):
 
     def executable_for_service(service_name):
         application_path = os.path.dirname(sys.executable)
-        if platform == "win32" or platform == "cygwin":
+        if platform in ["win32", "cygwin"]:
             executable = name_map[service_name]
             path = f"{application_path}/{executable}.exe"
-            return path
         else:
             path = f"{application_path}/{name_map[service_name]}"
-            return path
+
+        return path
 
 
 else:
@@ -70,9 +70,9 @@ class WebSocketServer:
     def __init__(self, root_path):
         self.root_path = root_path
         self.log = log
-        self.services: Dict = dict()
-        self.connections: Dict[str, Any] = dict()  # service_name : WebSocket
-        self.remote_address_map: Dict[str, str] = dict()  # remote_address: service_name
+        self.services: Dict = {}
+        self.connections: Dict[str, Any] = {}
+        self.remote_address_map: Dict[str, str] = {}
         self.ping_job = None
 
     async def start(self):
@@ -150,23 +150,21 @@ class WebSocketServer:
             await self.message_for_service(message)
             return
 
-        data = None
-        if "data" in message:
-            data = message["data"]
-        if command == "ping":
-            response = await self.ping()
-        elif command == "start_service":
-            response = await self.start_service(data)
-        elif command == "start_plotting":
-            response = await self.start_plotting(data)
-        elif command == "stop_service":
-            response = await self.stop_service(data)
+        data = message["data"] if "data" in message else None
+        if command == "exit":
+            response = await self.exit()
         elif command == "is_running":
             response = await self.is_running(data)
-        elif command == "exit":
-            response = await self.exit()
+        elif command == "ping":
+            response = await self.ping()
         elif command == "register_service":
             response = await self.register_service(websocket, data)
+        elif command == "start_plotting":
+            response = await self.start_plotting(data)
+        elif command == "start_service":
+            response = await self.start_service(data)
+        elif command == "stop_service":
+            response = await self.stop_service(data)
         else:
             response = {"success": False, "error": f"unknown_command {command}"}
 
@@ -174,8 +172,7 @@ class WebSocketServer:
         await websocket.send(full_response)
 
     async def ping(self):
-        response = {"success": True, "value": "pong"}
-        return response
+        return {"success": True, "value": "pong"}
 
     async def start_plotting(self, request):
         service_name = request["service"]
@@ -185,21 +182,21 @@ class WebSocketServer:
         t2 = request["t2"]
         d = request["d"]
 
-        command_args = []
-        command_args.append(service_name)
-        command_args.append(f"-k={k}")
-        command_args.append(f"-n={n}")
-        command_args.append(f"-t={t}")
-        command_args.append(f"-2={t2}")
-        command_args.append(f"-d={d}")
-
+        command_args = [
+            service_name,
+            f"-k={k}",
+            f"-n={n}",
+            f"-t={t}",
+            f"-2={t2}",
+            f"-d={d}",
+        ]
         error = None
         success = False
 
         if service_name in self.services:
             service = self.services[service_name]
             r = service is not None and service.poll() is None
-            if r is False:
+            if not r:
                 self.services.pop(service_name)
                 error = None
             else:
@@ -214,13 +211,12 @@ class WebSocketServer:
                 log.exception(f"problem starting {service_name}")
                 error = "start failed"
 
-        response = {
+        return {
             "success": success,
             "service": service_name,
             "out_file": f"{plotter_log_path(self.root_path).absolute()}",
             "error": error,
         }
-        return response
 
     async def start_service(self, request):
         service_command = request["service"]
@@ -234,7 +230,7 @@ class WebSocketServer:
         if service_name in self.services:
             service = self.services[service_name]
             r = service is not None and service.poll() is None
-            if r is False:
+            if not r:
                 self.services.pop(service_name)
                 error = None
             else:
@@ -249,37 +245,34 @@ class WebSocketServer:
                 log.exception(f"problem starting {service_name}")
                 error = "start failed"
 
-        response = {"success": success, "service": service_name, "error": error}
-        return response
+        return {"success": success, "service": service_name, "error": error}
 
     async def stop_service(self, request):
         service_name = request["service"]
         result = await kill_service(self.root_path, self.services, service_name)
-        response = {"success": result, "service_name": service_name}
-        return response
+        return {"success": result, "service_name": service_name}
 
     async def is_running(self, request):
         service_name = request["service"]
         process = self.services.get(service_name)
         r = process is not None and process.poll() is None
-        if service_name == "chia-create-plots":
-            response = {
+        return (
+            {
                 "success": True,
                 "service_name": service_name,
                 "is_running": r,
                 "out_file": f"{plotter_log_path(self.root_path).absolute()}",
             }
-        else:
-            response = {"success": True, "service_name": service_name, "is_running": r}
-
-        return response
+            if service_name == "chia-create-plots"
+            else {"success": True, "service_name": service_name, "is_running": r}
+        )
 
     async def exit(self):
 
-        jobs = []
-        for k in self.services.keys():
-            jobs.append(kill_service(self.root_path, self.services, k))
-        if jobs:
+        if jobs := [
+            kill_service(self.root_path, self.services, k)
+            for k in self.services.keys()
+        ]:
             await asyncio.wait(jobs)
         self.services.clear()
 
@@ -287,8 +280,7 @@ class WebSocketServer:
         asyncio.get_event_loop().call_later(5, lambda *args: sys.exit(0))
         log.info("chia daemon exiting in 5 seconds")
 
-        response = {"success": True}
-        return response
+        return {"success": True}
 
     async def register_service(self, websocket, request):
         self.log.info(request)
@@ -304,9 +296,8 @@ class WebSocketServer:
         self.remote_address_map[websocket.remote_address[1]] = service
         if self.ping_job is None:
             self.ping_job = asyncio.create_task(self.ping_task())
-        response = {"success": True}
         self.log.info(f"registered for service {service}")
-        return response
+        return {"success": True}
 
     async def message_for_service(self, message):
         destination = message["destination"]
@@ -447,7 +438,7 @@ def is_running(services, service_name):
 def create_server_for_daemon(root_path):
     routes = web.RouteTableDef()
 
-    services: Dict = dict()
+    services: Dict = {}
 
     @routes.get("/daemon/ping/")
     async def ping(request):
@@ -458,11 +449,11 @@ def create_server_for_daemon(root_path):
         service_name = request.query.get("service")
         if not validate_service(service_name):
             r = "unknown service"
-            return web.Response(text=str(r))
+            return web.Response(text=r)
 
         if is_running(services, service_name):
             r = "already running"
-            return web.Response(text=str(r))
+            return web.Response(text=r)
 
         try:
             process, pid_path = launch_service(root_path, service_name)
@@ -472,7 +463,7 @@ def create_server_for_daemon(root_path):
             log.exception(f"problem starting {service_name}")
             r = "start failed"
 
-        return web.Response(text=str(r))
+        return web.Response(text=r)
 
     @routes.get("/daemon/service/stop/")
     async def stop_service(request):

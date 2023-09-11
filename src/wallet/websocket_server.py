@@ -167,10 +167,7 @@ class WebSocketServer:
                     print("Closing")
                     await ws.close()
                 elif msg.type == aiohttp.WSMsgType.ERROR:
-                    print("Error during receive %s" % ws.exception())
-                elif msg.type == aiohttp.WSMsgType.CLOSED:
-                    pass
-
+                    print(f"Error during receive {ws.exception()}")
                 break
 
         await ws.close()
@@ -221,12 +218,10 @@ class WebSocketServer:
         elif wallet.wallet_info.type == WalletType.COLOURED_COIN:
             puzzle_hash = await wallet.get_new_inner_hash()
 
-        response = {
+        return {
             "wallet_id": wallet_id,
             "puzzle_hash": puzzle_hash,
         }
-
-        return response
 
     async def send_transaction(self, request):
         wallet_id = int(request["wallet_id"])
@@ -234,26 +229,22 @@ class WebSocketServer:
         try:
             tx = await wallet.generate_signed_transaction_dict(request)
         except BaseException as e:
-            data = {
+            return {
                 "status": "FAILED",
                 "reason": f"Failed to generate signed transaction {e}",
             }
-            return data
-
         if tx is None:
-            data = {
+            return {
                 "status": "FAILED",
                 "reason": "Failed to generate signed transaction",
             }
-            return data
         try:
             await wallet.push_transaction(tx)
         except BaseException as e:
-            data = {
+            return {
                 "status": "FAILED",
                 "reason": f"Failed to push transaction {e}",
             }
-            return data
         self.log.error(tx)
         sent = False
         start = time.time()
@@ -264,7 +255,7 @@ class WebSocketServer:
                 tx.name()
             )
 
-            if len(sent_to) == 0:
+            if not sent_to:
                 await asyncio.sleep(0.1)
                 continue
             status, err = sent_to[0][1], sent_to[0][2]
@@ -296,8 +287,7 @@ class WebSocketServer:
             wallet_id
         )
 
-        response = {"success": True, "txs": transactions, "wallet_id": wallet_id}
-        return response
+        return {"success": True, "txs": transactions, "wallet_id": wallet_id}
 
     async def farm_block(self, request):
         puzzle_hash = bytes.fromhex(request["puzzle_hash"])
@@ -321,7 +311,7 @@ class WebSocketServer:
         else:
             frozen_balance = await wallet.get_frozen_amount()
 
-        response = {
+        return {
             "wallet_id": wallet_id,
             "success": True,
             "confirmed_wallet_balance": balance,
@@ -331,31 +321,23 @@ class WebSocketServer:
             "pending_change": pending_change,
         }
 
-        return response
-
     async def get_sync_status(self):
         syncing = self.wallet_node.wallet_state_manager.sync_mode
 
-        response = {"syncing": syncing}
-
-        return response
+        return {"syncing": syncing}
 
     async def get_height_info(self):
         lca = self.wallet_node.wallet_state_manager.lca
         height = self.wallet_node.wallet_state_manager.block_records[lca].height
 
-        response = {"height": height}
-
-        return response
+        return {"height": height}
 
     async def get_connection_info(self):
         connections = (
             self.wallet_node.server.global_connections.get_full_node_peerinfos()
         )
 
-        response = {"connections": connections}
-
-        return response
+        return {"connections": connections}
 
     async def create_new_wallet(self, request):
         config, wallet_state_manager, main_wallet = self.get_wallet_config()
@@ -365,17 +347,13 @@ class WebSocketServer:
                 cc_wallet: CCWallet = await CCWallet.create_new_cc(
                     wallet_state_manager, main_wallet, request["amount"]
                 )
-                response = {"success": True, "type": cc_wallet.wallet_info.type.name}
-                return response
+                return {"success": True, "type": cc_wallet.wallet_info.type.name}
             elif request["mode"] == "existing":
                 cc_wallet = await CCWallet.create_wallet_for_cc(
                     wallet_state_manager, main_wallet, request["colour"]
                 )
-                response = {"success": True, "type": cc_wallet.wallet_info.type.name}
-                return response
-
-        response = {"success": False}
-        return response
+                return {"success": True, "type": cc_wallet.wallet_info.type.name}
+        return {"success": False}
 
     def get_wallet_config(self):
         return (
@@ -389,9 +367,7 @@ class WebSocketServer:
             WalletInfo
         ] = await self.wallet_node.wallet_state_manager.get_all_wallets()
 
-        response = {"wallets": wallets, "success": True}
-
-        return response
+        return {"wallets": wallets, "success": True}
 
     async def rl_set_admin_info(self, request):
         wallet_id = int(request["wallet_id"])
@@ -403,9 +379,7 @@ class WebSocketServer:
 
         success = await wallet.admin_create_coin(interval, limit, user_pubkey, amount)
 
-        response = {"success": success}
-
-        return response
+        return {"success": success}
 
     async def rl_set_user_info(self, request):
         wallet_id = int(request["wallet_id"])
@@ -417,23 +391,19 @@ class WebSocketServer:
 
         success = await wallet.set_user_info(interval, limit, origin_id, admin_pubkey)
 
-        response = {"success": success}
-
-        return response
+        return {"success": success}
 
     async def cc_set_name(self, request):
         wallet_id = int(request["wallet_id"])
         wallet: CCWallet = self.wallet_node.wallet_state_manager.wallets[wallet_id]
         await wallet.set_name(str(request["name"]))
-        response = {"wallet_id": wallet_id, "success": True}
-        return response
+        return {"wallet_id": wallet_id, "success": True}
 
     async def cc_get_name(self, request):
         wallet_id = int(request["wallet_id"])
         wallet: CCWallet = self.wallet_node.wallet_state_manager.wallets[wallet_id]
         name: str = await wallet.get_name()
-        response = {"wallet_id": wallet_id, "name": name}
-        return response
+        return {"wallet_id": wallet_id, "name": name}
 
     async def cc_spend(self, request):
         wallet_id = int(request["wallet_id"])
@@ -442,19 +412,15 @@ class WebSocketServer:
         try:
             tx = await wallet.cc_spend(request["amount"], puzzle_hash)
         except BaseException as e:
-            data = {
+            return {
                 "status": "FAILED",
                 "reason": f"{e}",
             }
-            return data
-
         if tx is None:
-            data = {
+            return {
                 "status": "FAILED",
                 "reason": "Failed to generate signed transaction",
             }
-            return data
-
         self.log.error(tx)
         sent = False
         start = time.time()
@@ -465,7 +431,7 @@ class WebSocketServer:
                 tx.name()
             )
 
-            if len(sent_to) == 0:
+            if not sent_to:
                 await asyncio.sleep(0.1)
                 continue
             status, err = sent_to[0][1], sent_to[0][2]
@@ -495,8 +461,7 @@ class WebSocketServer:
         wallet_id = int(request["wallet_id"])
         wallet: CCWallet = self.wallet_node.wallet_state_manager.wallets[wallet_id]
         colour: str = await wallet.get_colour()
-        response = {"colour": colour, "wallet_id": wallet_id}
-        return response
+        return {"colour": colour, "wallet_id": wallet_id}
 
     async def get_wallet_summaries(self):
         response = {}
@@ -526,12 +491,11 @@ class WebSocketServer:
             error,
         ) = await self.trade_manager.get_discrepancies_for_offer(file_path)
 
-        if success:
-            response = {"success": True, "discrepancies": discrepancies}
-        else:
-            response = {"success": False, "error": error}
-
-        return response
+        return (
+            {"success": True, "discrepancies": discrepancies}
+            if success
+            else {"success": False, "error": error}
+        )
 
     async def create_offer_for_ids(self, request):
         offer = request["ids"]
@@ -541,28 +505,25 @@ class WebSocketServer:
         )
         if success:
             self.trade_manager.write_offer_to_disk(Path(file_name), spend_bundle)
-            response = {"success": success}
+            return {"success": success}
         else:
-            response = {"success": success, "reason": error}
-
-        return response
+            return {"success": success, "reason": error}
 
     async def respond_to_offer(self, request):
         file_path = Path(request["filename"])
         success, reason = await self.trade_manager.respond_to_offer(file_path)
-        if success:
-            response = {"success": success}
-        else:
-            response = {"success": success, "reason": reason}
-        return response
+        return (
+            {"success": success}
+            if success
+            else {"success": success, "reason": reason}
+        )
 
     async def get_public_keys(self):
         fingerprints = [
             (esk.get_public_key().get_fingerprint(), seed is not None)
             for (esk, seed) in self.keychain.get_all_private_keys()
         ]
-        response = {"success": True, "public_key_fingerprints": fingerprints}
-        return response
+        return {"success": True, "public_key_fingerprints": fingerprints}
 
     async def get_private_key(self, request):
         fingerprint = request["fingerprint"]
@@ -586,8 +547,7 @@ class WebSocketServer:
 
         started = await self.start_wallet(fingerprint)
 
-        response = {"success": started}
-        return response
+        return {"success": started}
 
     async def add_key(self, request):
         if "mnemonic" in request:
@@ -599,7 +559,7 @@ class WebSocketServer:
         elif "hexkey" in request:
             # Adding a key from hex private key string. Two cases: extended private key (HD)
             # which is 77 bytes, and int private key which is 32 bytes.
-            if len(request["hexkey"]) != 154 and len(request["hexkey"]) != 64:
+            if len(request["hexkey"]) not in [154, 64]:
                 return {"success": False}
             if len(request["hexkey"]) == 64:
                 sk = PrivateKey.from_bytes(bytes.fromhex(request["hexkey"]))
@@ -627,8 +587,7 @@ class WebSocketServer:
         # Starts the wallet with the new key selected
         started = await self.start_wallet(fingerprint)
 
-        response = {"success": started}
-        return response
+        return {"success": started}
 
     async def delete_key(self, request):
         await self.stop_wallet()
@@ -637,8 +596,7 @@ class WebSocketServer:
         self.log.warning(f"{self.keychain.get_all_public_keys()}")
         self.keychain.delete_key_by_fingerprint(fingerprint)
         self.log.warning(f"{self.keychain.get_all_public_keys()}")
-        response = {"success": True}
-        return response
+        return {"success": True}
 
     async def clean_all_state(self):
         self.keychain.delete_all_keys()
@@ -657,13 +615,11 @@ class WebSocketServer:
     async def delete_all_keys(self):
         await self.stop_wallet()
         await self.clean_all_state()
-        response = {"success": True}
-        return response
+        return {"success": True}
 
     async def generate_mnemonic(self):
         mnemonic = generate_mnemonic()
-        response = {"success": True, "mnemonic": mnemonic}
-        return response
+        return {"success": True, "mnemonic": mnemonic}
 
     async def safe_handle(self, websocket, payload):
         message = None
@@ -693,68 +649,65 @@ class WebSocketServer:
         if message["ack"]:
             return None
 
-        data = None
-        if "data" in message:
-            data = message["data"]
-        if command == "ping":
-            return pong()
-        elif command == "get_wallet_balance":
-            return await self.get_wallet_balance(data)
-        elif command == "send_transaction":
-            return await self.send_transaction(data)
-        elif command == "get_next_puzzle_hash":
-            return await self.get_next_puzzle_hash(data)
-        elif command == "get_transactions":
-            return await self.get_transactions(data)
-        elif command == "farm_block":
-            return await self.farm_block(data)
-        elif command == "get_sync_status":
-            return await self.get_sync_status()
-        elif command == "get_height_info":
-            return await self.get_height_info()
-        elif command == "get_connection_info":
-            return await self.get_connection_info()
+        data = message["data"] if "data" in message else None
+        if command == "add_key":
+            return await self.add_key(data)
+        elif command == "cc_get_colour":
+            return await self.cc_get_colour(data)
+        elif command == "cc_get_name":
+            return await self.cc_get_name(data)
+        elif command == "cc_set_name":
+            return await self.cc_set_name(data)
+        elif command == "cc_spend":
+            return await self.cc_spend(data)
         elif command == "create_new_wallet":
             return await self.create_new_wallet(data)
+        elif command == "create_offer_for_ids":
+            return await self.create_offer_for_ids(data)
+        elif command == "delete_all_keys":
+            return await self.delete_all_keys()
+        elif command == "delete_key":
+            return await self.delete_key(data)
+        elif command == "farm_block":
+            return await self.farm_block(data)
+        elif command == "generate_mnemonic":
+            return await self.generate_mnemonic()
+        elif command == "get_connection_info":
+            return await self.get_connection_info()
+        elif command == "get_discrepancies_for_offer":
+            return await self.get_discrepancies_for_offer(data)
+        elif command == "get_height_info":
+            return await self.get_height_info()
+        elif command == "get_next_puzzle_hash":
+            return await self.get_next_puzzle_hash(data)
+        elif command == "get_private_key":
+            return await self.get_private_key(data)
+        elif command == "get_public_keys":
+            return await self.get_public_keys()
+        elif command == "get_sync_status":
+            return await self.get_sync_status()
+        elif command == "get_transactions":
+            return await self.get_transactions(data)
+        elif command == "get_wallet_balance":
+            return await self.get_wallet_balance(data)
+        elif command == "get_wallet_summaries":
+            return await self.get_wallet_summaries()
         elif command == "get_wallets":
             return await self.get_wallets()
+        elif command == "log_in":
+            return await self.log_in(data)
+        elif command == "ping":
+            return pong()
+        elif command == "respond_to_offer":
+            return await self.respond_to_offer(data)
         elif command == "rl_set_admin_info":
             return await self.rl_set_admin_info(data)
         elif command == "rl_set_user_info":
             return await self.rl_set_user_info(data)
-        elif command == "cc_set_name":
-            return await self.cc_set_name(data)
-        elif command == "cc_get_name":
-            return await self.cc_get_name(data)
-        elif command == "cc_spend":
-            return await self.cc_spend(data)
-        elif command == "cc_get_colour":
-            return await self.cc_get_colour(data)
-        elif command == "create_offer_for_ids":
-            return await self.create_offer_for_ids(data)
-        elif command == "get_discrepancies_for_offer":
-            return await self.get_discrepancies_for_offer(data)
-        elif command == "respond_to_offer":
-            return await self.respond_to_offer(data)
-        elif command == "get_wallet_summaries":
-            return await self.get_wallet_summaries()
-        elif command == "get_public_keys":
-            return await self.get_public_keys()
-        elif command == "get_private_key":
-            return await self.get_private_key(data)
-        elif command == "generate_mnemonic":
-            return await self.generate_mnemonic()
-        elif command == "log_in":
-            return await self.log_in(data)
-        elif command == "add_key":
-            return await self.add_key(data)
-        elif command == "delete_key":
-            return await self.delete_key(data)
-        elif command == "delete_all_keys":
-            return await self.delete_all_keys()
+        elif command == "send_transaction":
+            return await self.send_transaction(data)
         else:
-            response = {"error": f"unknown_command {command}"}
-            return response
+            return {"error": f"unknown_command {command}"}
 
     async def notify_ui_that_state_changed(self, state: str, wallet_id):
         data = {

@@ -36,12 +36,7 @@ class Introducer:
                 try:
                     r, w = await asyncio.open_connection(peer.host, int(peer.port))
                     w.close()
-                except (
-                    ConnectionRefusedError,
-                    TimeoutError,
-                    OSError,
-                    asyncio.TimeoutError,
-                ) as e:
+                except (TimeoutError, OSError, asyncio.TimeoutError) as e:
                     log.warning(f"Could not vet {peer}. {type(e)}{str(e)}")
                     self.vetted[peer.get_hash()] = False
                     continue

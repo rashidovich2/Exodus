@@ -63,24 +63,19 @@ class MempoolManager:
         """
         Returns aggregated spendbundle that can be used for creating new block
         """
-        if header.header_hash in self.mempools:
-            mempool: Mempool = self.mempools[header.header_hash]
-            cost_sum = 0
-            spend_bundles: List[SpendBundle] = []
-            for dic in mempool.sorted_spends.values():
-                for item in dic.values():
-                    if item.cost + cost_sum <= self.constants["MAX_BLOCK_COST_CLVM"]:
-                        spend_bundles.append(item.spend_bundle)
-                        cost_sum += item.cost
-                    else:
-                        break
-            if len(spend_bundles) > 0:
-                block_bundle = SpendBundle.aggregate(spend_bundles)
-                return block_bundle
-            else:
-                return None
-        else:
+        if header.header_hash not in self.mempools:
             return None
+        mempool: Mempool = self.mempools[header.header_hash]
+        cost_sum = 0
+        spend_bundles: List[SpendBundle] = []
+        for dic in mempool.sorted_spends.values():
+            for item in dic.values():
+                if item.cost + cost_sum <= self.constants["MAX_BLOCK_COST_CLVM"]:
+                    spend_bundles.append(item.spend_bundle)
+                    cost_sum += item.cost
+                else:
+                    break
+        return SpendBundle.aggregate(spend_bundles) if spend_bundles else None
 
     def get_filter(self) -> bytes:
         all_transactions: Set[bytes32] = set()
@@ -102,10 +97,10 @@ class MempoolManager:
         if cost == 0:
             return False
         fees_per_cost = fees / cost
-        for pool in self.mempools.values():
-            if not pool.at_full_capacity() or fees_per_cost >= pool.get_min_fee_rate():
-                return True
-        return False
+        return any(
+            not pool.at_full_capacity() or fees_per_cost >= pool.get_min_fee_rate()
+            for pool in self.mempools.values()
+        )
 
     def maybe_pop_seen(self):
         while len(self.seen_bundle_hashes) > self.seen_cache_size:
@@ -133,10 +128,7 @@ class MempoolManager:
         removal_names: List[bytes32] = new_spend.removal_names()
 
         additions = new_spend.additions()
-        additions_dict: Dict[bytes32, Coin] = {}
-        for add in additions:
-            additions_dict[add.name()] = add
-
+        additions_dict: Dict[bytes32, Coin] = {add.name(): add for add in additions}
         addition_amount = uint64(0)
 
         # Check additions for max coin amount
@@ -151,13 +143,13 @@ class MempoolManager:
 
         # Check for duplicate outputs
         addition_counter = collections.Counter(_.name() for _ in additions)
-        for k, v in addition_counter.items():
+        for v in addition_counter.values():
             if v > 1:
                 return None, MempoolInclusionStatus.FAILED, Err.DUPLICATE_OUTPUT
 
         # Check for duplicate inputs
-        removal_counter = collections.Counter(name for name in removal_names)
-        for k, v in removal_counter.items():
+        removal_counter = collections.Counter(iter(removal_names))
+        for v in removal_counter.values():
             if v > 1:
                 return None, MempoolInclusionStatus.FAILED, Err.DOUBLE_SPEND
 
@@ -170,11 +162,7 @@ class MempoolManager:
         added_to_potential: bool = False
         potential_error: Optional[Err] = None
 
-        if to_pool is not None:
-            targets = [to_pool]
-        else:
-            targets = list(self.mempools.values())
-
+        targets = [to_pool] if to_pool is not None else list(self.mempools.values())
         for pool in targets:
             # Skip if already added
             if new_spend.name() in pool.spends:
@@ -351,18 +339,14 @@ class MempoolManager:
             if removal.name() in mempool.removals:
                 conflicts.append(removal)
 
-            # 3. Check coinbase freeze period
-            if record.coinbase == 1:
-                if (
+            if (
                     mempool.header.height + 1
                     < record.confirmed_block_index + self.coinbase_freeze
                 ):
+                if record.coinbase == 1:
                     return Err.COINBASE_NOT_YET_SPENDABLE, []
 
-        if len(conflicts) > 0:
-            return Err.MEMPOOL_CONFLICT, conflicts
-        # 5. If coins can be spent return list of unspents as we see them in local storage
-        return None, []
+        return (Err.MEMPOOL_CONFLICT, conflicts) if conflicts else (None, [])
 
     def add_to_potential_tx_set(self, spend: SpendBundle):
         """
@@ -377,17 +361,18 @@ class MempoolManager:
 
     def seen(self, bundle_hash: bytes32) -> bool:
         """ Return true if we saw this spendbundle before """
-        if bundle_hash in self.seen_bundle_hashes:
-            return True
-        else:
-            return False
+        return bundle_hash in self.seen_bundle_hashes
 
     def get_spendbundle(self, bundle_hash: bytes32) -> Optional[SpendBundle]:
         """ Returns a full SpendBundle if it's inside one the mempools"""
-        for pool in self.mempools.values():
-            if bundle_hash in pool.spends:
-                return pool.spends[bundle_hash].spend_bundle
-        return None
+        return next(
+            (
+                pool.spends[bundle_hash].spend_bundle
+                for pool in self.mempools.values()
+                if bundle_hash in pool.spends
+            ),
+            None,
+        )
 
     async def new_tips(self, new_tips: List[FullBlock]):
         """
@@ -444,9 +429,7 @@ class MempoolManager:
                 byte_array_tx.append(bytearray(item.name()))
 
         bip158: PyBIP158 = PyBIP158(byte_array_tx)
-        encoded_filter = bytes(bip158.GetEncoded())
-
-        return encoded_filter
+        return bytes(bip158.GetEncoded())
 
     async def get_items_not_in_filter(
         self, mempool_filter: PyBIP158

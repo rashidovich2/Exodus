@@ -26,8 +26,7 @@ def format_response(incoming_msg: Dict[str, Any], response_data: Dict[str, Any])
         "origin": incoming_msg["destination"],
     }
 
-    json_str = dict_to_json_str(response)
-    return json_str
+    return dict_to_json_str(response)
 
 
 def create_payload(
@@ -42,13 +41,8 @@ def create_payload(
         "origin": origin,
     }
 
-    if string:
-        json_str = dict_to_json_str(response)
-        return json_str
-    else:
-        return response
+    return dict_to_json_str(response) if string else response
 
 
 def pong():
-    response = {"success": True}
-    return response
+    return {"success": True}

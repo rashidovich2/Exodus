@@ -92,10 +92,7 @@ class WalletUserStore:
         row = await cursor.fetchone()
         await cursor.close()
 
-        if row is None:
-            return None
-
-        return await self.get_wallet_by_id(row[0])
+        return None if row is None else await self.get_wallet_by_id(row[0])
 
     async def get_all_wallets(self) -> List[WalletInfo]:
         """
@@ -105,12 +102,7 @@ class WalletUserStore:
         cursor = await self.db_connection.execute("SELECT * from users_wallets")
         rows = await cursor.fetchall()
         await cursor.close()
-        result = []
-
-        for row in rows:
-            result.append(WalletInfo(row[0], row[1], WalletType(row[2]), row[3]))
-
-        return result
+        return [WalletInfo(row[0], row[1], WalletType(row[2]), row[3]) for row in rows]
 
     async def get_wallet_by_id(self, id: int) -> Optional[WalletInfo]:
         """

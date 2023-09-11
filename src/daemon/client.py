@@ -17,8 +17,7 @@ class DaemonProxy:
         self.websocket = None
 
     def format_request(self, command, data=None):
-        request = create_payload(command, data, "client", "daemon", False)
-        return request
+        return create_payload(command, data, "client", "daemon", False)
 
     async def start(self):
         self.websocket = await websockets.connect(self._uri)
@@ -63,26 +62,22 @@ class DaemonProxy:
     async def start_service(self, service_name):
         data = {"service": service_name}
         request = self.format_request("start_service", data)
-        response = await self._get(request)
-        return response
+        return await self._get(request)
 
     async def stop_service(self, service_name, delay_before_kill=15):
         data = {"service": service_name}
         request = self.format_request("stop_service", data)
-        response = await self._get(request)
-        return response
+        return await self._get(request)
 
     async def is_running(self, service_name):
         data = {"service": service_name}
         request = self.format_request("is_running", data)
         response = await self._get(request)
-        is_running = response["data"]["is_running"]
-        return is_running
+        return response["data"]["is_running"]
 
     async def ping(self):
         request = self.format_request("ping")
-        response = await self._get(request)
-        return response
+        return await self._get(request)
 
     async def exit(self):
         request = self.format_request("exit", {})

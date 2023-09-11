@@ -72,7 +72,7 @@ class WalletStore:
         )
 
         await self.db_connection.commit()
-        self.coin_record_cache = dict()
+        self.coin_record_cache = {}
         return self
 
     async def _clear_database(self):
@@ -269,10 +269,9 @@ class WalletStore:
         coin = Coin(
             bytes32(bytes.fromhex(row[6])), bytes32(bytes.fromhex(row[5])), row[7]
         )
-        coin_record = WalletCoinRecord(
+        return WalletCoinRecord(
             coin, row[1], row[2], row[3], row[4], WalletType(row[8]), row[9]
         )
-        return coin_record
 
     async def rollback_lca_to_block(self, block_index):
         """
@@ -361,10 +360,7 @@ class WalletStore:
         )
         row = await cursor.fetchone()
         await cursor.close()
-        if row is not None:
-            return BlockRecord.from_bytes(row[3])
-        else:
-            return None
+        return BlockRecord.from_bytes(row[3]) if row is not None else None
 
     async def add_block_to_path(self, header_hash: bytes32) -> None:
         """Adds a block record to the LCA path."""

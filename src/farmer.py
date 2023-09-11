@@ -71,7 +71,7 @@ class Farmer:
 
         assert len(self.wallet_target) == 32
         assert len(self.pool_target) == 32
-        if len(self.pool_sks) == 0:
+        if not self.pool_sks:
             error_str = "No keys exist. Please run 'chia keys generate' or open the UI."
             raise RuntimeError(error_str)
         for key, value in override_constants.items():

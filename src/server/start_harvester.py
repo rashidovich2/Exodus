@@ -23,7 +23,7 @@ def service_kwargs_for_harvester(root_path=DEFAULT_ROOT_PATH):
 
     api = Harvester(config, plot_config, root_path)
 
-    kwargs = dict(
+    return dict(
         root_path=root_path,
         api=api,
         node_type=NodeType.HARVESTER,
@@ -31,9 +31,11 @@ def service_kwargs_for_harvester(root_path=DEFAULT_ROOT_PATH):
         service_name=service_name,
         server_listen_ports=[config["port"]],
         connect_peers=connect_peers,
-        rpc_start_callback_port=(start_harvester_rpc_server, config["rpc_port"]),
+        rpc_start_callback_port=(
+            start_harvester_rpc_server,
+            config["rpc_port"],
+        ),
     )
-    return kwargs
 
 
 def main():

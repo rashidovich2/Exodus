@@ -18,11 +18,13 @@ def additions_for_npc(npc_list: List[NPC]) -> List[Coin]:
     additions: List[Coin] = []
 
     for npc in npc_list:
-        for coin in created_outputs_for_conditions_dict(
-            npc.condition_dict, npc.coin_name
-        ):
-            additions.append(coin)
-
+        additions.extend(
+            iter(
+                created_outputs_for_conditions_dict(
+                    npc.condition_dict, npc.coin_name
+                )
+            )
+        )
     return additions
 
 
@@ -63,9 +65,7 @@ class FullBlock(Streamable):
             if npc_list is not None:
                 additions.extend(additions_for_npc(npc_list))
 
-        additions.append(self.header.data.coinbase)
-        additions.append(self.header.data.fees_coin)
-
+        additions.extend((self.header.data.coinbase, self.header.data.fees_coin))
         return additions
 
     async def tx_removals_and_additions(self) -> Tuple[List[bytes32], List[Coin]]:
@@ -85,9 +85,7 @@ class FullBlock(Streamable):
             # build removals list
             if npc_list is None:
                 return [], []
-            for npc in npc_list:
-                removals.append(npc.coin_name)
-
+            removals.extend(npc.coin_name for npc in npc_list)
             additions.extend(additions_for_npc(npc_list))
 
         return removals, additions

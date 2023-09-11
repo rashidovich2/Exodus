@@ -68,12 +68,12 @@ class SyncPeersHandler:
         """
         Returns True iff all required blocks have been downloaded.
         """
-        for height in range(self.fully_validated_up_to + 1, len(self.header_hashes)):
-            if not self.potential_blocks_received[uint32(height)].is_set():
-                # Some blocks have not been received yet
-                return False
-        # We have received all blocks
-        return True
+        return all(
+            self.potential_blocks_received[uint32(height)].is_set()
+            for height in range(
+                self.fully_validated_up_to + 1, len(self.header_hashes)
+            )
+        )
 
     async def monitor_timeouts(self) -> OutboundMessageGenerator:
         """
@@ -83,9 +83,11 @@ class SyncPeersHandler:
         current_time = time.time()
         remove_node_ids = []
         for node_id, outbound_set in self.current_outbound_sets.items():
-            for _, time_requested in outbound_set.items():
-                if current_time - time_requested > self.BLOCK_RESPONSE_TIMEOUT:
-                    remove_node_ids.append(node_id)
+            remove_node_ids.extend(
+                node_id
+                for _, time_requested in outbound_set.items()
+                if current_time - time_requested > self.BLOCK_RESPONSE_TIMEOUT
+            )
         for rnid in remove_node_ids:
             if rnid in self.current_outbound_sets:
                 log.warning(
@@ -141,12 +143,10 @@ class SyncPeersHandler:
 
             if self.potential_blocks_received[uint32(height)].is_set():
                 continue
-            already_requested = False
-            # If we have asked for this block to some peer, we don't want to ask for it again yet.
-            for node_id_2, request_set_2 in self.current_outbound_sets.items():
-                if self.header_hashes[height] in request_set_2:
-                    already_requested = True
-                    break
+            already_requested = any(
+                self.header_hashes[height] in request_set_2
+                for node_id_2, request_set_2 in self.current_outbound_sets.items()
+            )
             if already_requested:
                 continue
 

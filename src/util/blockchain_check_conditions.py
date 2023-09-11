@@ -20,9 +20,7 @@ def blockchain_assert_coin_consumed(
     Returns None if conditions are met, if not returns the reason why it failed
     """
     coin_name = condition.var1
-    if coin_name not in removed:
-        return Err.ASSERT_COIN_CONSUMED_FAILED
-    return None
+    return Err.ASSERT_COIN_CONSUMED_FAILED if coin_name not in removed else None
 
 
 def blockchain_assert_my_coin_id(

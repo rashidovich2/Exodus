@@ -67,9 +67,7 @@ def dataclass_from_dict(klass, d):
     """
     if is_type_SpecificOptional(klass):
         # Type is optional, data is either None, or Any
-        if not d:
-            return None
-        return dataclass_from_dict(klass.__args__[0], d)
+        return None if not d else dataclass_from_dict(klass.__args__[0], d)
     if dataclasses.is_dataclass(klass):
         # Type is a dataclass, data is a dictionary
         fieldtypes = {f.name: f.type for f in dataclasses.fields(klass)}
@@ -127,21 +125,15 @@ class Streamable:
             full_list: List[inner_type] = []  # type: ignore
             assert inner_type != List.__args__[0]  # type: ignore
             list_size: uint32 = uint32(int.from_bytes(f.read(4), "big"))
-            for list_index in range(list_size):
-                full_list.append(cls.parse_one_item(inner_type, f))  # type: ignore
+            full_list.extend(cls.parse_one_item(inner_type, f) for _ in range(list_size))
             return full_list
         if is_type_SpecificOptional(f_type):
             inner_type = f_type.__args__[0]
             is_present: bool = f.read(1) == bytes([1])
-            if is_present:
-                return cls.parse_one_item(inner_type, f)  # type: ignore
-            else:
-                return None
+            return cls.parse_one_item(inner_type, f) if is_present else None
         if is_type_Tuple(f_type):
             inner_types = f_type.__args__
-            full_list = []
-            for inner_type in inner_types:
-                full_list.append(cls.parse_one_item(inner_type, f))  # type: ignore
+            full_list = [cls.parse_one_item(inner_type, f) for inner_type in inner_types]
             return tuple(full_list)
         if f_type is bool:
             return bool.from_bytes(f.read(4), "big")
@@ -152,17 +144,17 @@ class Streamable:
             return f_type.parse(f)
         if hasattr(f_type, "from_bytes") and size_hints[f_type.__name__]:
             return f_type.from_bytes(f.read(size_hints[f_type.__name__]))
-        if f_type is str:
-            str_size: uint32 = uint32(int.from_bytes(f.read(4), "big"))
-            return bytes.decode(f.read(str_size), "utf-8")
-        else:
+        if f_type is not str:
             raise RuntimeError(f"Type {f_type} does not have parse")
+        str_size: uint32 = uint32(int.from_bytes(f.read(4), "big"))
+        return bytes.decode(f.read(str_size), "utf-8")
 
     @classmethod
     def parse(cls: Type[cls.__name__], f: BinaryIO) -> cls.__name__:  # type: ignore
-        values = []
-        for _, f_type in get_type_hints(cls).items():
-            values.append(cls.parse_one_item(f_type, f))  # type: ignore
+        values = [
+            cls.parse_one_item(f_type, f)
+            for _, f_type in get_type_hints(cls).items()
+        ]
         return cls(*values)
 
     def stream_one_item(self, f_type: Type, item, f: BinaryIO) -> None:

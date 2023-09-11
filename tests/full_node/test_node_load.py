@@ -13,8 +13,7 @@ from tests.setup_nodes import setup_two_nodes, test_constants, bt
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestNodeLoad:
@@ -41,7 +40,7 @@ class TestNodeLoad:
 
         num_unfinished_blocks = 1000
         start_unf = time.time()
-        for i in range(num_unfinished_blocks):
+        for _ in range(num_unfinished_blocks):
             msg = Message(
                 "respond_unfinished_block",
                 full_node_protocol.RespondUnfinishedBlock(blocks[9]),
@@ -58,7 +57,7 @@ class TestNodeLoad:
 
         while time.time() - start_unf < 100:
             if (
-                max([h.height for h in full_node_2.blockchain.get_current_tips()])
+                max(h.height for h in full_node_2.blockchain.get_current_tips())
                 == num_blocks - 1
             ):
                 print(
@@ -81,8 +80,9 @@ class TestNodeLoad:
 
         start_unf = time.time()
         for i in range(1, num_blocks):
-            while max([h.height for h in full_node_2.blockchain.get_current_tips()]) < (
-                i - 1
+            while (
+                max(h.height for h in full_node_2.blockchain.get_current_tips())
+                < i - 1
             ):
                 # Waits until we reach height i - 1
                 await asyncio.sleep(0.05)

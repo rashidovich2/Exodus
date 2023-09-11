@@ -104,15 +104,15 @@ class SyncBlocksProcessor:
                     ) = await self.blockchain.receive_block(
                         block, validated, pos, sync_mode=True
                     )
-                    if (
-                        result == ReceiveBlockResult.INVALID_BLOCK
-                        or result == ReceiveBlockResult.DISCONNECTED_BLOCK
-                    ):
+                    if result in [
+                        ReceiveBlockResult.INVALID_BLOCK,
+                        ReceiveBlockResult.DISCONNECTED_BLOCK,
+                    ]:
                         if error_code is not None:
                             raise ConsensusError(error_code, block.header_hash)
                         raise RuntimeError(f"Invalid block {block.header_hash}")
                 assert (
-                    max([h.height for h in self.blockchain.get_current_tips()])
+                    max(h.height for h in self.blockchain.get_current_tips())
                     >= block.height
                 )
                 del self.sync_store.potential_blocks[block.height]

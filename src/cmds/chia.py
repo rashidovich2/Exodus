@@ -20,14 +20,14 @@ SUBCOMMANDS = [
 
 def create_parser() -> ArgumentParser:
     parser: ArgumentParser = ArgumentParser(
-        description="Manage chia blockchain infrastructure (%s)." % __version__,
+        description=f"Manage chia blockchain infrastructure ({__version__}).",
         epilog="Try 'chia start node', 'chia netspace -d 48', or 'chia show -s'.",
     )
 
     parser.add_argument(
         "-r",
         "--root-path",
-        help="Config file root (defaults to %s)." % DEFAULT_ROOT_PATH,
+        help=f"Config file root (defaults to {DEFAULT_ROOT_PATH}).",
         type=pathlib.Path,
         default=DEFAULT_ROOT_PATH,
     )
@@ -40,7 +40,7 @@ def create_parser() -> ArgumentParser:
     #   version.version_parser(new_parser)
 
     for subcommand in SUBCOMMANDS:
-        mod = importlib.import_module("src.cmds.%s" % subcommand)
+        mod = importlib.import_module(f"src.cmds.{subcommand}")
         mod.make_parser(subparsers.add_parser(subcommand))  # type: ignore
 
     parser.set_defaults(function=lambda args, parser: parser.print_help())

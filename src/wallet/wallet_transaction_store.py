@@ -76,7 +76,7 @@ class WalletTransactionStore:
         )
 
         await self.db_connection.commit()
-        self.tx_record_cache = dict()
+        self.tx_record_cache = {}
         return self
 
     async def _init_cache(self):
@@ -147,10 +147,7 @@ class WalletTransactionStore:
         result = []
         all_unconfirmed: List[TransactionRecord] = await self.get_all_unconfirmed()
         for record in all_unconfirmed:
-            for coin in record.removals:
-                if coin.name() == removal_id:
-                    result.append(record)
-
+            result.extend(record for coin in record.removals if coin.name() == removal_id)
         return result
 
     async def tx_with_addition_coin(
@@ -160,10 +157,7 @@ class WalletTransactionStore:
         result = []
         all: List[TransactionRecord] = await self.get_all_transactions(wallet_id)
         for record in all:
-            for coin in record.additions:
-                if coin.name() == removal_id:
-                    result.append(record)
-
+            result.extend(record for coin in record.additions if coin.name() == removal_id)
         return result
 
     async def increment_sent(
@@ -244,10 +238,7 @@ class WalletTransactionStore:
         )
         row = await cursor.fetchone()
         await cursor.close()
-        if row is not None:
-            record = TransactionRecord.from_bytes(row[0])
-            return record
-        return None
+        return TransactionRecord.from_bytes(row[0]) if row is not None else None
 
     async def get_not_sent(self) -> List[TransactionRecord]:
         """

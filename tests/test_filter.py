@@ -10,8 +10,7 @@ from tests.setup_nodes import test_constants, bt, setup_simulators_and_wallets
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestFilter:
@@ -34,13 +33,10 @@ class TestFilter:
         )
 
         for i in range(1, num_blocks):
-            byte_array_tx: List[bytes] = []
             block = blocks[i]
             coinbase = bytearray(block.header.data.coinbase.puzzle_hash)
             fee = bytearray(block.header.data.fees_coin.puzzle_hash)
-            byte_array_tx.append(coinbase)
-            byte_array_tx.append(fee)
-
+            byte_array_tx: List[bytes] = [coinbase, fee]
             pl = PyBIP158(byte_array_tx)
             present = pl.Match(coinbase)
             fee_present = pl.Match(fee)

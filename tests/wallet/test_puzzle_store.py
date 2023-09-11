@@ -17,8 +17,7 @@ from src.wallet.util.wallet_types import WalletType
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestPuzzleStore:
@@ -33,40 +32,40 @@ class TestPuzzleStore:
         db = await WalletPuzzleStore.create(con)
         try:
             derivation_recs = []
-            wallet_types = [t for t in WalletType]
+            wallet_types = list(WalletType)
 
             for i in range(1000):
-                derivation_recs.append(
-                    DerivationRecord(
-                        uint32(i),
-                        token_bytes(32),
-                        PrivateKey.from_seed(token_bytes(5)).get_public_key(),
-                        WalletType.STANDARD_WALLET,
-                        uint32(1),
-                    )
-                )
-                derivation_recs.append(
-                    DerivationRecord(
-                        uint32(i),
-                        token_bytes(32),
-                        PrivateKey.from_seed(token_bytes(5)).get_public_key(),
-                        WalletType.RATE_LIMITED,
-                        uint32(2),
+                derivation_recs.extend(
+                    (
+                        DerivationRecord(
+                            uint32(i),
+                            token_bytes(32),
+                            PrivateKey.from_seed(token_bytes(5)).get_public_key(),
+                            WalletType.STANDARD_WALLET,
+                            uint32(1),
+                        ),
+                        DerivationRecord(
+                            uint32(i),
+                            token_bytes(32),
+                            PrivateKey.from_seed(token_bytes(5)).get_public_key(),
+                            WalletType.RATE_LIMITED,
+                            uint32(2),
+                        ),
                     )
                 )
             assert await db.puzzle_hash_exists(derivation_recs[0].puzzle_hash) == False
-            assert await db.index_for_pubkey(derivation_recs[0].pubkey) == None
+            assert await db.index_for_pubkey(derivation_recs[0].pubkey) is None
+            assert await db.index_for_puzzle_hash(derivation_recs[2].puzzle_hash) is None
             assert (
-                await db.index_for_puzzle_hash(derivation_recs[2].puzzle_hash) == None
-            )
-            assert (
-                await db.wallet_info_for_puzzle_hash(derivation_recs[2].puzzle_hash)
-                == None
+                await db.wallet_info_for_puzzle_hash(
+                    derivation_recs[2].puzzle_hash
+                )
+                is None
             )
             assert len((await db.get_all_puzzle_hashes())) == 0
-            assert await db.get_last_derivation_path() == None
-            assert await db.get_unused_derivation_path() == None
-            assert await db.get_derivation_record(0, 2) == None
+            assert await db.get_last_derivation_path() is None
+            assert await db.get_unused_derivation_path() is None
+            assert await db.get_derivation_record(0, 2) is None
 
             await db.add_derivation_paths(derivation_recs)
 

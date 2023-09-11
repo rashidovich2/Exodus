@@ -15,8 +15,7 @@ from tests.block_tools import get_plot_dir
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestRpc:

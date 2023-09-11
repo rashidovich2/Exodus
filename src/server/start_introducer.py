@@ -13,7 +13,7 @@ def service_kwargs_for_introducer(root_path=DEFAULT_ROOT_PATH):
         config["max_peers_to_send"], config["recent_peer_threshold"]
     )
 
-    kwargs = dict(
+    return dict(
         root_path=root_path,
         api=introducer,
         node_type=NodeType.INTRODUCER,
@@ -21,7 +21,6 @@ def service_kwargs_for_introducer(root_path=DEFAULT_ROOT_PATH):
         service_name=service_name,
         server_listen_ports=[config["port"]],
     )
-    return kwargs
 
 
 def main():

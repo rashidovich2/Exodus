@@ -86,11 +86,7 @@ class FullNode:
         self.sync_peers_handler = None
         for key, value in override_constants.items():
             self.constants[key] = value
-        if name:
-            self.log = logging.getLogger(name)
-        else:
-            self.log = logging.getLogger(__name__)
-
+        self.log = logging.getLogger(name) if name else logging.getLogger(__name__)
         self.global_connections = None
 
         self.db_path = path_from_root(root_path, config["database_path"])
@@ -214,8 +210,10 @@ class FullNode:
             )
             if tup[1].prev_header_hash in tip_hashes
         ]
-        for chall, iters in tip_infos:
-            pos_info_requests.append(timelord_protocol.ProofOfSpaceInfo(chall, iters))
+        pos_info_requests.extend(
+            timelord_protocol.ProofOfSpaceInfo(chall, iters)
+            for chall, iters in tip_infos
+        )
         for challenge_msg in challenge_requests:
             yield OutboundMessage(
                 NodeType.TIMELORD, Message("challenge_start", challenge_msg), delivery
@@ -266,7 +264,7 @@ class FullNode:
         diff = self.config["target_peer_count"] - len(
             self.global_connections.get_full_node_connections()
         )
-        return diff if diff >= 0 else 0
+        return max(diff, 0)
 
     def _close(self):
         self._shut_down = True
@@ -318,7 +316,7 @@ class FullNode:
                 tip_block = potential_tip_block
                 tip_height = potential_tip_block.height
         if highest_weight <= max(
-            [t.weight for t in self.blockchain.get_current_tips()]
+            t.weight for t in self.blockchain.get_current_tips()
         ):
             self.log.info("Not performing sync, already caught up.")
             return
@@ -426,7 +424,7 @@ class FullNode:
             return
 
         current_tips = self.blockchain.get_current_tips()
-        assert max([h.height for h in current_tips]) == tip_height
+        assert max(h.height for h in current_tips) == tip_height
 
         self.full_node_store.set_proof_of_time_estimate_ips(
             self.blockchain.get_next_min_iters(tip_block)
@@ -1210,11 +1208,8 @@ class FullNode:
         if spend_bundle:
             additions: List[Coin] = spend_bundle.additions()
             removals: List[Coin] = spend_bundle.removals()
-            for coin in additions:
-                byte_array_tx.append(bytearray(coin.puzzle_hash))
-            for coin in removals:
-                byte_array_tx.append(bytearray(coin.name()))
-
+            byte_array_tx.extend(bytearray(coin.puzzle_hash) for coin in additions)
+            byte_array_tx.extend(bytearray(coin.name()) for coin in removals)
             bip158: PyBIP158 = PyBIP158(byte_array_tx)
             encoded_filter = bytes(bip158.GetEncoded())
 

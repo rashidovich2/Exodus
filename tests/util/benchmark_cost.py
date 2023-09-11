@@ -22,21 +22,19 @@ def float_to_str(f):
         digits, exp_str = float_string.split("e")
         digits = digits.replace(".", "").replace("-", "")
         exp = int(exp_str)
-        zero_padding = "0" * (
-            abs(int(exp)) - 1
-        )  # minus 1 for decimal point in the sci notation
+        zero_padding = ("0" * (abs(exp) - 1))
         sign = "-" if f < 0 else ""
         if exp > 0:
-            float_string = "{}{}{}.0".format(sign, digits, zero_padding)
+            float_string = f"{sign}{digits}{zero_padding}.0"
         else:
-            float_string = "{}0.{}{}".format(sign, zero_padding, digits)
+            float_string = f"{sign}0.{zero_padding}{digits}"
     return float_string
 
 
 def run_and_return_cost_time(chialisp):
 
     start = time.time()
-    clvm_loop = f"((c (q ((c (f (a)) (c (f (a)) (c (f (r (a))) (c (f (r (r (a)))) (q ()))))))) (c (q ((c (i (f (r (a))) (q (i (q 1) ((c (f (a)) (c (f (a)) (c (- (f (r (a))) (q 1)) (c (f (r (r (a)))) (q ())))))) ((c (f (r (r (a)))) (q ()))))) (q (q ()))) (a)))) (a))))"
+    clvm_loop = "((c (q ((c (f (a)) (c (f (a)) (c (f (r (a))) (c (f (r (r (a)))) (q ()))))))) (c (q ((c (i (f (r (a))) (q (i (q 1) ((c (f (a)) (c (f (a)) (c (- (f (r (a))) (q 1)) (c (f (r (r (a)))) (q ())))))) ((c (f (r (r (a)))) (q ()))))) (q (q ()))) (a)))) (a))))"
     loop_program = Program(binutils.assemble(clvm_loop))
     clvm_loop_solution = f"(1000 {chialisp})"
     solution_program = Program(binutils.assemble(clvm_loop_solution))
@@ -172,7 +170,7 @@ if __name__ == "__main__":
     # Run AggSig 1000 times
     agg_sig_start = time.time()
     agg_sig_cost = 0
-    for i in range(0, 1000):
+    for _ in range(0, 1000):
         valid = signature.validate([pk_message_pair])
         agg_sig_cost += 20
     agg_sig_end = time.time()

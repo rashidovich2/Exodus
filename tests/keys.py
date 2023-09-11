@@ -30,11 +30,10 @@ def puzzle_hash_for_index(index):
 
 
 def conditions_for_payment(puzzle_hash_amount_pairs):
-    conditions = [
+    return [
         make_create_coin_condition(ph, amount)
         for ph, amount in puzzle_hash_amount_pairs
     ]
-    return conditions
 
 
 def make_default_keyUtil():

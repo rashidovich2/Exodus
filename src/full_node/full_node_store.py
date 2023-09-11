@@ -65,10 +65,14 @@ class FullNodeStore:
     def get_disconnected_block_by_prev(
         self, prev_header_hash: bytes32
     ) -> Optional[FullBlock]:
-        for _, block in self.disconnected_blocks.items():
-            if block.prev_header_hash == prev_header_hash:
-                return block
-        return None
+        return next(
+            (
+                block
+                for _, block in self.disconnected_blocks.items()
+                if block.prev_header_hash == prev_header_hash
+            ),
+            None,
+        )
 
     def get_disconnected_block(self, header_hash: bytes32) -> Optional[FullBlock]:
         return self.disconnected_blocks.get(header_hash, None)
@@ -99,15 +103,14 @@ class FullNodeStore:
         self, pos_hash: bytes32
     ) -> Optional[Tuple[Optional[Program], Optional[bytes], HeaderData, ProofOfSpace]]:
         res = self.candidate_blocks.get(pos_hash, None)
-        if res is None:
-            return None
-        return (res[0], res[1], res[2], res[3])
+        return None if res is None else (res[0], res[1], res[2], res[3])
 
     def clear_candidate_blocks_below(self, height: uint32) -> None:
-        del_keys = []
-        for key, value in self.candidate_blocks.items():
-            if value[4] < height:
-                del_keys.append(key)
+        del_keys = [
+            key
+            for key, value in self.candidate_blocks.items()
+            if value[4] < height
+        ]
         for key in del_keys:
             try:
                 del self.candidate_blocks[key]
@@ -133,9 +136,7 @@ class FullNodeStore:
         )
         row = await cursor.fetchone()
         await cursor.close()
-        if row is not None:
-            return FullBlock.from_bytes(row[0])
-        return None
+        return FullBlock.from_bytes(row[0]) if row is not None else None
 
     def seen_unfinished_block(self, header_hash: bytes32) -> bool:
         if header_hash in self.seen_unfinished_blocks:
@@ -184,10 +185,11 @@ class FullNodeStore:
         return self.proof_of_time_heights.get(challenge_iters, None)
 
     def clear_proof_of_time_heights_below(self, height: uint32) -> None:
-        del_keys: List = []
-        for key, value in self.proof_of_time_heights.items():
-            if value < height:
-                del_keys.append(key)
+        del_keys: List = [
+            key
+            for key, value in self.proof_of_time_heights.items()
+            if value < height
+        ]
         for key in del_keys:
             try:
                 del self.proof_of_time_heights[key]

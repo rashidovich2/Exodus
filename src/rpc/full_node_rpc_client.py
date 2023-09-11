@@ -105,7 +105,7 @@ class FullNodeRpcClient:
         return response["connections"]
 
     async def open_connection(self, host: str, port: int) -> Dict:
-        return await self.fetch("open_connection", {"host": host, "port": int(port)})
+        return await self.fetch("open_connection", {"host": host, "port": port})
 
     async def close_connection(self, node_id: bytes32) -> Dict:
         return await self.fetch("close_connection", {"node_id": node_id.hex()})

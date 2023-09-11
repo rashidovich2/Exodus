@@ -13,7 +13,7 @@ from keyrings.cryptfile.cryptfile import CryptFileKeyring
 
 MAX_KEYS = 100
 
-if platform == "win32" or platform == "cygwin":
+if platform in ["win32", "cygwin"]:
     import keyring.backends.Windows
 
     keyring.set_keyring(keyring.backends.Windows.WinVaultKeyring())
@@ -34,8 +34,7 @@ def bip39_word_list() -> str:
 
 def generate_mnemonic() -> List[str]:
     seed_bytes = token_bytes(32)
-    mnemonic = bytes_to_mnemonic(seed_bytes)
-    return mnemonic
+    return bytes_to_mnemonic(seed_bytes)
 
 
 def bytes_to_mnemonic(seed_bytes: bytes):
@@ -98,10 +97,7 @@ class Keychain:
         self.user = user
 
     def _get_service(self):
-        if self.testing:
-            return f"chia-{self.user}-test"
-        else:
-            return f"chia-{self.user}"
+        return f"chia-{self.user}-test" if self.testing else f"chia-{self.user}"
 
     def _get_stored_entropy(self, user: str):
         return keyring.get_password(self._get_service(), user)

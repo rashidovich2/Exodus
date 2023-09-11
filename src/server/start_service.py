@@ -104,8 +104,7 @@ class Service:
             config,
         )
         for _ in ["set_server", "_set_server"]:
-            f = getattr(api, _, None)
-            if f:
+            if f := getattr(api, _, None):
                 f(self._server)
 
         self._connect_peers = connect_peers
@@ -183,18 +182,19 @@ class Service:
         return 0
 
     def stop(self):
-        if not self._is_stopping:
-            self._is_stopping = True
-            for _ in self._server_sockets:
-                _.close()
-            for _ in self._reconnect_tasks:
-                _.cancel()
-            self._server.close_all()
-            self._api._shut_down = True
-            if self._introducer_poll_task:
-                self._introducer_poll_task.cancel()
-            if self._stop_callback:
-                self._stop_callback()
+        if self._is_stopping:
+            return
+        self._is_stopping = True
+        for _ in self._server_sockets:
+            _.close()
+        for _ in self._reconnect_tasks:
+            _.cancel()
+        self._server.close_all()
+        self._api._shut_down = True
+        if self._introducer_poll_task:
+            self._introducer_poll_task.cancel()
+        if self._stop_callback:
+            self._stop_callback()
 
     async def wait_closed(self):
         await self._task
@@ -212,11 +212,6 @@ async def async_run_service(*args, **kwargs):
 def run_service(*args, **kwargs):
     if uvloop is not None:
         uvloop.install()
-    # TODO: use asyncio.run instead
-    # for now, we use `run_until_complete` as `asyncio.run` blocks on RPC server not exiting
-    if 1:
-        return asyncio.get_event_loop().run_until_complete(
-            async_run_service(*args, **kwargs)
-        )
-    else:
-        return asyncio.run(async_run_service(*args, **kwargs))
+    return asyncio.get_event_loop().run_until_complete(
+        async_run_service(*args, **kwargs)
+    )

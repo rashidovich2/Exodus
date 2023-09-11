@@ -58,8 +58,7 @@ async def start_farmer_rpc_server(
 ):
     handler = FarmerRpcApiHandler(farmer, stop_node_cb)
     routes = {"/get_latest_challenges": handler.get_latest_challenges}
-    cleanup = await start_rpc_server(handler, rpc_port, routes)
-    return cleanup
+    return await start_rpc_server(handler, rpc_port, routes)
 
 
 AbstractRpcApiHandler.register(FarmerRpcApiHandler)

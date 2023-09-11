@@ -223,7 +223,7 @@ async def perform_handshake(
         )
         # Only yield a connection if the handshake is succesful and the connection is not a duplicate.
         yield connection, global_connections
-    except (ProtocolError, asyncio.IncompleteReadError, OSError, Exception,) as e:
+    except (ProtocolError, asyncio.IncompleteReadError, Exception) as e:
         connection.log.warning(f"{e}, handshake not completed. Connection not created.")
         # Make sure to close the connection even if it's not in global connections
         connection.close()
@@ -308,7 +308,9 @@ async def handle_message(
         elif full_message.function == "pong":
             return
 
-        f_with_peer_name = getattr(api, full_message.function + "_with_peer_name", None)
+        f_with_peer_name = getattr(
+            api, f"{full_message.function}_with_peer_name", None
+        )
 
         if f_with_peer_name is not None:
             result = f_with_peer_name(full_message.data, connection.get_peername())
@@ -350,27 +352,27 @@ async def expand_outbound_messages(
     elif outbound_message.delivery_method == Delivery.RANDOM:
         # Select a random peer.
         to_yield_single: Tuple[Connection, Message]
-        typed_peers: List[Connection] = [
+        if typed_peers := [
             peer
             for peer in global_connections.get_connections()
             if peer.connection_type == outbound_message.peer_type
-        ]
-        if len(typed_peers) == 0:
+        ]:
+            yield (random.choice(typed_peers), outbound_message.message)
+        else:
             return
-        yield (random.choice(typed_peers), outbound_message.message)
-    elif (
-        outbound_message.delivery_method == Delivery.BROADCAST
-        or outbound_message.delivery_method == Delivery.BROADCAST_TO_OTHERS
-    ):
+    elif outbound_message.delivery_method in [
+        Delivery.BROADCAST,
+        Delivery.BROADCAST_TO_OTHERS,
+    ]:
         # Broadcast to all peers.
         for peer in global_connections.get_connections():
             if peer.connection_type == outbound_message.peer_type:
-                if peer == connection:
-                    if outbound_message.delivery_method == Delivery.BROADCAST:
-                        yield (peer, outbound_message.message)
-                else:
+                if (
+                    peer == connection
+                    and outbound_message.delivery_method == Delivery.BROADCAST
+                    or peer != connection
+                ):
                     yield (peer, outbound_message.message)
-
     elif outbound_message.delivery_method == Delivery.SPECIFIC:
         # Send to a specific peer, by node_id, assuming the NodeType matches.
         if outbound_message.specific_peer_node_id is None:

@@ -66,15 +66,12 @@ class Mempool:
         self.spends[item.name] = item
 
         # sorted_spends is Dict[float, Dict[bytes32, MempoolItem]]
-        if item.fee_per_cost in self.sorted_spends:
-            self.sorted_spends[item.fee_per_cost][item.name] = item
-        else:
+        if item.fee_per_cost not in self.sorted_spends:
             self.sorted_spends[item.fee_per_cost] = {}
-            self.sorted_spends[item.fee_per_cost][item.name] = item
-
+        self.sorted_spends[item.fee_per_cost][item.name] = item
         for add in additions:
             self.additions[add.name()] = item
-        for key in removals_dic.keys():
+        for key in removals_dic:
             self.removals[key] = item
 
     def at_full_capacity(self) -> bool:

@@ -26,6 +26,9 @@ def is_type_Tuple(f_type: Type) -> bool:
 
 
 def strictdataclass(cls: Any):
+
+
+
     class _Local:
         """
         Dataclass where all fields must be type annotated, and type checking is performed
@@ -47,9 +50,8 @@ def strictdataclass(cls: Any):
             if is_type_SpecificOptional(f_type):
                 if item is None:
                     return None
-                else:
-                    inner_type: Type = f_type.__args__[0]  # type: ignore
-                    return self.parse_item(item, f_name, inner_type)
+                inner_type: Type = f_type.__args__[0]  # type: ignore
+                return self.parse_item(item, f_name, inner_type)
             if is_type_Tuple(f_type):
                 collected_list = []
                 if not is_type_Tuple(type(item)) and not is_type_List(type(item)):
@@ -81,6 +83,7 @@ def strictdataclass(cls: Any):
                 object.__setattr__(
                     self, f_name, self.parse_item(data[f_name], f_name, f_type)
                 )
+
 
     class NoTypeChecking:
         __no_type_check__ = True

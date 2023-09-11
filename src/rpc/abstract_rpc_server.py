@@ -45,7 +45,7 @@ class AbstractRpcApiHandler(ABC):
     async def _state_changed(self, change: str):
         assert self.websocket is not None
 
-        if change == "add_connection" or change == "close_connection":
+        if change in {"add_connection", "close_connection"}:
             data = await self.get_connections({})
             payload = create_payload(
                 "get_connections", data, self.service_name, "wallet_ui"
@@ -115,7 +115,7 @@ class AbstractRpcApiHandler(ABC):
             for c in self.service.global_connections.get_connections()
             if c.node_id == node_id
         ]
-        if len(connections_to_close) == 0:
+        if not connections_to_close:
             raise aiohttp.web.HTTPNotFound()
         for connection in connections_to_close:
             self.service.global_connections.close(connection)
@@ -138,17 +138,12 @@ class AbstractRpcApiHandler(ABC):
         if message["ack"]:
             return None
 
-        data = None
-        if "data" in message:
-            data = message["data"]
+        data = message["data"] if "data" in message else None
         if command == "ping":
             return pong()
 
         f = getattr(self, command, None)
-        if f is not None:
-            return await f(data)
-        else:
-            return {"error": f"unknown_command {command}"}
+        return {"error": f"unknown_command {command}"} if f is None else await f(data)
 
     async def safe_handle(self, websocket, payload):
         message = None
@@ -188,10 +183,7 @@ class AbstractRpcApiHandler(ABC):
                     print("Closing")
                     await ws.close()
                 elif msg.type == aiohttp.WSMsgType.ERROR:
-                    print("Error during receive %s" % ws.exception())
-                elif msg.type == aiohttp.WSMsgType.CLOSED:
-                    pass
-
+                    print(f"Error during receive {ws.exception()}")
                 break
 
         await ws.close()

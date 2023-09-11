@@ -64,9 +64,7 @@ class FullNodeRpcApiHandler(AbstractRpcApiHandler):
             / self.service.constants["MIN_ITERS_PROPORTION"]
         )
 
-        tip_hashes = []
-        for tip in tips:
-            tip_hashes.append(tip.header_hash)
+        tip_hashes = [tip.header_hash for tip in tips]
         if sync_mode and self.service.sync_peers_handler is not None:
             sync_tip_height = len(self.service.sync_store.get_potential_hashes())
             sync_progress_height = self.service.sync_peers_handler.fully_validated_up_to
@@ -116,10 +114,7 @@ class FullNodeRpcApiHandler(AbstractRpcApiHandler):
         block: Optional[FullBlock] = await self.service.block_store.get_block(
             header_hash
         )
-        if block is None:
-            return None
-
-        return {"success": True, "block": block}
+        return None if block is None else {"success": True, "block": block}
 
     async def get_header_by_height(self, request: Dict) -> Optional[Dict]:
         if "height" not in request:
@@ -148,12 +143,13 @@ class FullNodeRpcApiHandler(AbstractRpcApiHandler):
         if "height" not in request:
             return None
         height = request["height"]
-        response_headers: List[Header] = []
-        for block in (
-            await self.service.full_node_store.get_unfinished_blocks()
-        ).values():
-            if block.height == height:
-                response_headers.append(block.header)
+        response_headers: List[Header] = [
+            block.header
+            for block in (
+                await self.service.full_node_store.get_unfinished_blocks()
+            ).values()
+            if block.height == height
+        ]
         return {"success": True, "headers": response_headers}
 
     async def get_latest_block_headers(self, request: Dict) -> Optional[Dict]:
@@ -191,18 +187,14 @@ class FullNodeRpcApiHandler(AbstractRpcApiHandler):
                 assert header is not None
                 all_unfinished[header.header_hash] = header
 
-        sorted_headers = [
-            v
-            for v in sorted(
-                headers.values(), key=lambda item: item.height, reverse=True
-            )
-        ]
-        sorted_unfinished = [
-            v
-            for v in sorted(
+        sorted_headers = list(
+            sorted(headers.values(), key=lambda item: item.height, reverse=True)
+        )
+        sorted_unfinished = list(
+            sorted(
                 all_unfinished.values(), key=lambda item: item.height, reverse=True
             )
-        ]
+        )
 
         finished_with_meta = []
         finished_header_hashes = set()
@@ -373,8 +365,7 @@ async def start_full_node_rpc_server(
         "/get_unspent_coins": handler.get_unspent_coins,
         "/get_heaviest_block_seen": handler.get_heaviest_block_seen,
     }
-    cleanup = await start_rpc_server(handler, rpc_port, routes)
-    return cleanup
+    return await start_rpc_server(handler, rpc_port, routes)
 
 
 AbstractRpcApiHandler.register(FullNodeRpcApiHandler)

@@ -78,7 +78,7 @@ def check_keys(new_root):
             config["pool"]["xch_target_puzzle_hash"] = all_targets[0]
 
     # Set the pool pks in the farmer
-    all_pubkeys_hex = set([bytes(pk.get_public_key()).hex() for pk in all_pubkeys])
+    all_pubkeys_hex = {bytes(pk.get_public_key()).hex() for pk in all_pubkeys}
     if "pool_public_keys" in config["farmer"]:
         for pk_hex in config["farmer"]["pool_public_keys"]:
             # Add original ones in config
@@ -152,7 +152,7 @@ def migrate_from(
     # migrate plots
     # for now, we simply leave them where they are
     # and make what may have been relative paths absolute
-    if "config/trusted.key" in not_found or "config/trusted.key" in not_found:
+    if "config/trusted.key" in not_found:
         initialize_ssl(new_root)
 
     plots_config: Dict = load_config(new_root, "plots.yaml")
@@ -237,15 +237,14 @@ def chia_init(root_path: Path):
     ]
 
     PATH_MANIFEST_LIST: List[Tuple[Path, List[str]]] = [
-        (Path(os.path.expanduser("~/.chia/beta-%s" % _)), MANIFEST)
+        (Path(os.path.expanduser(f"~/.chia/beta-{_}")), MANIFEST)
         for _ in ["1.0b5", "1.0b5.dev0", "1.0b4", "1.0b3", "1.0b2", "1.0b1"]
     ]
 
     for old_path, manifest in PATH_MANIFEST_LIST:
-        # This is reached if the user has updated the application, and therefore a new configuration
-        # folder must be used. First we migrate the config fies, and then we migrate the private keys.
-        r = migrate_from(old_path, root_path, manifest, DO_NOT_MIGRATE_SETTINGS)
-        if r:
+        if r := migrate_from(
+            old_path, root_path, manifest, DO_NOT_MIGRATE_SETTINGS
+        ):
             migrate_to_keychain(old_path, root_path)
             break
     else:

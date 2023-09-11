@@ -28,9 +28,7 @@ class ProofOfSpace(Streamable):
         quality_str = v.validate_proof(
             plot_seed, self.size, self.challenge_hash, bytes(self.proof)
         )
-        if not quality_str:
-            return None
-        return quality_str
+        return None if not quality_str else quality_str
 
     @staticmethod
     def calculate_plot_seed(pool_pubkey: PublicKey, plot_pubkey: PublicKey) -> bytes32:

@@ -19,9 +19,7 @@ def make_parser(parser):
 
 def launch_start_daemon(root_path):
     os.environ["CHIA_ROOT"] = str(root_path)
-    # TODO: use startupinfo=subprocess.DETACHED_PROCESS on windows
-    process = subprocess.Popen("chia run_daemon".split(), stdout=subprocess.PIPE)
-    return process
+    return subprocess.Popen("chia run_daemon".split(), stdout=subprocess.PIPE)
 
 
 async def create_start_daemon_connection(root_path):
@@ -33,9 +31,7 @@ async def create_start_daemon_connection(root_path):
         process.stdout.readline()
         # it prints "daemon: listening"
         connection = await connect_to_daemon_and_validate(root_path)
-    if connection:
-        return connection
-    return None
+    return connection if connection else None
 
 
 async def async_start(args, parser):

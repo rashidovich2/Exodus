@@ -24,8 +24,7 @@ from tests.wallet_tools import WalletTool
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestBlockchainTransactions:
@@ -420,11 +419,14 @@ class TestBlockchainTransactions:
         ]
         assert new_blocks[-1].header_hash in full_node_1.blockchain.headers
 
-        coin_2 = None
-        for coin in new_blocks[-1].additions():
-            if coin.puzzle_hash == receiver_1_puzzlehash:
-                coin_2 = coin
-                break
+        coin_2 = next(
+            (
+                coin
+                for coin in new_blocks[-1].additions()
+                if coin.puzzle_hash == receiver_1_puzzlehash
+            ),
+            None,
+        )
         assert coin_2 is not None
 
         spend_bundle = wallet_a.generate_signed_transaction(
@@ -452,11 +454,14 @@ class TestBlockchainTransactions:
         ]
         assert new_blocks[-1].header_hash in full_node_1.blockchain.headers
 
-        coin_3 = None
-        for coin in new_blocks[-1].additions():
-            if coin.puzzle_hash == receiver_2_puzzlehash:
-                coin_3 = coin
-                break
+        coin_3 = next(
+            (
+                coin
+                for coin in new_blocks[-1].additions()
+                if coin.puzzle_hash == receiver_2_puzzlehash
+            ),
+            None,
+        )
         assert coin_3 is not None
 
         spend_bundle = wallet_a.generate_signed_transaction(
@@ -484,11 +489,14 @@ class TestBlockchainTransactions:
         ]
         assert new_blocks[-1].header_hash in full_node_1.blockchain.headers
 
-        coin_4 = None
-        for coin in new_blocks[-1].additions():
-            if coin.puzzle_hash == receiver_3_puzzlehash:
-                coin_4 = coin
-                break
+        coin_4 = next(
+            (
+                coin
+                for coin in new_blocks[-1].additions()
+                if coin.puzzle_hash == receiver_3_puzzlehash
+            ),
+            None,
+        )
         assert coin_4 is not None
 
     @pytest.mark.asyncio
@@ -555,10 +563,11 @@ class TestBlockchainTransactions:
         ]
         assert new_blocks[-1].header_hash in full_node_1.blockchain.headers
 
-        coins_created = []
-        for coin in new_blocks[-1].additions():
-            if coin.puzzle_hash == receiver_1_puzzlehash:
-                coins_created.append(coin)
+        coins_created = [
+            coin
+            for coin in new_blocks[-1].additions()
+            if coin.puzzle_hash == receiver_1_puzzlehash
+        ]
         assert len(coins_created) == 2
 
     @pytest.mark.asyncio

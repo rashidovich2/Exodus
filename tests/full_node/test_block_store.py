@@ -33,8 +33,7 @@ test_constants["GENESIS_BLOCK"] = bytes(
 
 @pytest.fixture(scope="module")
 def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
+    yield asyncio.get_event_loop()
 
 
 class TestBlockStore:
@@ -131,7 +130,7 @@ class TestBlockStore:
         db = await BlockStore.create(connection)
         tasks = []
 
-        for i in range(10000):
+        for _ in range(10000):
             rand_i = random.randint(0, 10)
             if random.random() < 0.5:
                 tasks.append(asyncio.create_task(db.add_block(blocks[rand_i])))

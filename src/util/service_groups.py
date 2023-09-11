@@ -17,8 +17,7 @@ def all_groups():
 
 def services_for_groups(groups):
     for group in groups:
-        for service in SERVICES_FOR_GROUP[group]:
-            yield service
+        yield from SERVICES_FOR_GROUP[group]
 
 
 def validate_service(service):

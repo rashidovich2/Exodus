@@ -34,11 +34,7 @@ class TradeManager:
         wallet_state_manager: WalletStateManager, name: str = None,
     ):
         self = TradeManager()
-        if name:
-            self.log = logging.getLogger(name)
-        else:
-            self.log = logging.getLogger(__name__)
-
+        self.log = logging.getLogger(name) if name else logging.getLogger(__name__)
         self.wallet_state_manager = wallet_state_manager
 
         return self
@@ -51,8 +47,7 @@ class TradeManager:
         """
         spend_bundle = None
         try:
-            for id in offer.keys():
-                amount = offer[id]
+            for id, amount in offer.items():
                 wallet_id = uint32(int(id))
                 wallet = self.wallet_state_manager.wallets[wallet_id]
                 if isinstance(wallet, CCWallet):
@@ -60,10 +55,7 @@ class TradeManager:
                     if balance < abs(amount) and amount < 0:
                         raise Exception(f"insufficient funds in wallet {wallet_id}")
                     if balance == 0 and amount > 0:
-                        if spend_bundle is None:
-                            to_exclude: List[Coin] = []
-                        else:
-                            to_exclude = spend_bundle.removals()
+                        to_exclude = [] if spend_bundle is None else spend_bundle.removals()
                         zero_spend_bundle: Optional[
                             SpendBundle
                         ] = await wallet.generate_zero_val_coin(False, to_exclude)
@@ -72,13 +64,13 @@ class TradeManager:
                             raise Exception(
                                 "Failed to generate offer. Zero value coin not created."
                             )
-                        if spend_bundle is None:
-                            spend_bundle = zero_spend_bundle
-                        else:
-                            spend_bundle = SpendBundle.aggregate(
+                        spend_bundle = (
+                            zero_spend_bundle
+                            if spend_bundle is None
+                            else SpendBundle.aggregate(
                                 [spend_bundle, zero_spend_bundle]
                             )
-
+                        )
                         additions = zero_spend_bundle.additions()
                         removals = zero_spend_bundle.removals()
                         zero_val_coin: Optional[Coin] = None
@@ -94,10 +86,7 @@ class TradeManager:
                             amount
                         )
                 elif isinstance(wallet, Wallet):
-                    if spend_bundle is None:
-                        to_exclude = []
-                    else:
-                        to_exclude = spend_bundle.removals()
+                    to_exclude = [] if spend_bundle is None else spend_bundle.removals()
                     new_spend_bundle = await wallet.create_spend_bundle_relative_chia(
                         amount, to_exclude
                     )
@@ -125,7 +114,7 @@ class TradeManager:
     ) -> Tuple[bool, Optional[Dict], Optional[Exception]]:
         try:
             self.log.info(f"trade offer: {file_path}")
-            cc_discrepancies: Dict[bytes32, int] = dict()
+            cc_discrepancies: Dict[bytes32, int] = {}
             trade_offer_hex = file_path.read_text()
             trade_offer = SpendBundle.from_bytes(bytes.fromhex(trade_offer_hex))
             for coinsol in trade_offer.coin_solutions:
@@ -173,8 +162,7 @@ class TradeManager:
             puzzle_hash.hex()
         )
         assert info is not None
-        puzzle = self.wallet_state_manager.main_wallet.puzzle_for_pk(bytes(info.pubkey))
-        return puzzle
+        return self.wallet_state_manager.main_wallet.puzzle_for_pk(bytes(info.pubkey))
 
     async def maybe_create_wallets_for_offer(self, file_path: Path) -> bool:
         success, result, error = await self.get_discrepancies_for_offer(file_path)

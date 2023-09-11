@@ -144,7 +144,7 @@ class BlockTools:
                 k.get_private_key() for (k, _) in self.keychain.get_all_private_keys()
             ]
             pool_pubkeys: List[PublicKey] = [sk.get_public_key() for sk in private_keys]
-            if len(private_keys) == 0:
+            if not private_keys:
                 raise RuntimeError("Keys not generated. Run `chia generate keys`")
 
             self.prover_dict, _, _ = load_plots(
@@ -200,7 +200,7 @@ class BlockTools:
         if seconds_per_block is None:
             seconds_per_block = test_constants["BLOCK_TIME_TARGET"]
 
-        if len(block_list) == 0:
+        if not block_list:
             if "GENESIS_BLOCK" in test_constants:
                 block_list.append(FullBlock.from_bytes(test_constants["GENESIS_BLOCK"]))
             else:

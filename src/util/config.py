@@ -87,7 +87,7 @@ def flatten_properties(config: Dict):
     for key, value in config.items():
         if type(value) is dict:
             for key_2, value_2 in flatten_properties(value).items():
-                properties[key + "." + key_2] = value_2
+                properties[f"{key}.{key_2}"] = value_2
         else:
             properties[key] = value
     return properties
